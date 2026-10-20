@@ -45,6 +45,13 @@ export default async function TenantLayout({
         pendingResidentCount={pendingResidentCount}
       />
       <div className="min-w-0 flex-1">
+        {process.env.NODE_ENV === "production" &&
+        process.env.CONSYS_DEMO_JSON === "true" ? (
+          <p className="border-b border-[#ead9aa] bg-[#fff8e7] px-5 py-2 text-center text-xs leading-5 text-[#76591d]">
+            Ambiente de demonstração: alterações em dados podem ser temporárias
+            e não aparecer para outros usuários.
+          </p>
+        ) : null}
         <main>{children}</main>
       </div>
     </div>

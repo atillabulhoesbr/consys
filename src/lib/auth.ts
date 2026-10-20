@@ -10,6 +10,7 @@ import {
 import { cookies } from "next/headers";
 import { z } from "zod";
 import {
+  findTenantBySlug,
   getRuntimeData,
   type Account,
   updateRuntimeData,
@@ -23,6 +24,11 @@ const DUMMY_PASSWORD_HASH = `scrypt$32768$8$1$${"0".repeat(32)}$${"0".repeat(128
 const bootstrapSchema = z.object({
   email: z.string().email().max(254),
   password: z.string().min(6).max(256),
+  name: z.string().trim().min(1).max(120),
+});
+const demoManagerSchema = z.object({
+  email: z.string().email().max(254),
+  password: z.string().min(8).max(256),
   name: z.string().trim().min(1).max(120),
 });
 
@@ -117,12 +123,76 @@ export async function ensureBootstrapAdmin() {
   });
 }
 
+async function ensureDemoManager() {
+  if (
+    process.env.NODE_ENV !== "production" ||
+    process.env.CONSYS_DEMO_JSON !== "true"
+  ) {
+    return;
+  }
+
+  const parsed = demoManagerSchema.safeParse({
+    email: process.env.DEMO_MANAGER_EMAIL?.trim().toLowerCase(),
+    password: process.env.DEMO_MANAGER_PASSWORD,
+    name: process.env.DEMO_MANAGER_NAME?.trim() || "Síndico Demonstração",
+  });
+  if (!parsed.success) {
+    throw new Error(
+      "Configure DEMO_MANAGER_EMAIL, DEMO_MANAGER_PASSWORD (mínimo 8 caracteres) e DEMO_MANAGER_NAME no ambiente da demonstração.",
+    );
+  }
+
+  const tenant = await findTenantBySlug("condominio-demo");
+  if (!tenant || tenant.status !== "active") {
+    throw new Error(
+      "O condomínio ativo condominio-demo é necessário para iniciar a conta de demonstração.",
+    );
+  }
+
+  const { email, password, name } = parsed.data;
+  await updateRuntimeData(async (data) => {
+    const existingManager = data.users.find((user) => user.email === email);
+    if (existingManager) {
+      if (
+        existingManager.active &&
+        existingManager.platformRole === null &&
+        existingManager.managerTenantIds.length === 1 &&
+        existingManager.managerTenantIds[0] === tenant.id
+      ) {
+        return;
+      }
+      throw new Error(
+        "O email configurado para o síndico demo já pertence a uma conta incompatível.",
+      );
+    }
+
+    const manager: Account = {
+      id: randomUUID(),
+      email,
+      name,
+      passwordHash: await hashPassword(password),
+      platformRole: null,
+      tenantIds: [tenant.id],
+      managerTenantIds: [tenant.id],
+      unitMemberships: [],
+      active: true,
+    };
+    data.users.push(manager);
+  });
+}
+
 export async function authenticate(
   email: string,
   password: string,
   requiredRole?: "super_admin" | "resident" | "manager",
 ) {
-  await ensureBootstrapAdmin();
+  if (
+    process.env.NODE_ENV !== "production" ||
+    process.env.CONSYS_DEMO_JSON !== "true"
+  ) {
+    await ensureBootstrapAdmin();
+  }
+  await ensureDemoManager();
   const data = await getRuntimeData();
   const account = data.users.find(
     (user) => user.email === email.trim().toLowerCase() && user.active,

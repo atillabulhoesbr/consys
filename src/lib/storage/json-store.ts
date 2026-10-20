@@ -2,6 +2,7 @@ import "server-only";
 
 import { randomUUID } from "node:crypto";
 import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { z } from "zod";
 
@@ -145,9 +146,15 @@ export type Announcement = z.infer<typeof announcementSchema>;
 export type Ticket = z.infer<typeof ticketSchema>;
 type RuntimeData = z.infer<typeof runtimeSchema>;
 
-const dataDirectory = path.join(process.cwd(), "dados_json");
-const tenantsPath = path.join(dataDirectory, "tenants.json");
-const runtimePath = path.join(dataDirectory, "runtime.json");
+const seedDataDirectory = path.join(process.cwd(), "dados_json");
+const isProductionJsonDemo =
+  process.env.NODE_ENV === "production" &&
+  process.env.CONSYS_DEMO_JSON === "true";
+const runtimeDirectory = isProductionJsonDemo
+  ? path.join(tmpdir(), "consys-demo-json")
+  : seedDataDirectory;
+const tenantsPath = path.join(seedDataDirectory, "tenants.json");
+const runtimePath = path.join(runtimeDirectory, "runtime.json");
 
 let writeQueue = Promise.resolve();
 
@@ -167,7 +174,7 @@ function assertJsonStorageEnabled() {
     );
   }
 
-  if (process.env.NODE_ENV === "production") {
+  if (process.env.NODE_ENV === "production" && !isProductionJsonDemo) {
     throw new Error(
       "O armazenamento JSON local não pode ser usado em produção. Configure o Supabase após implementar seu adaptador de autenticação.",
     );
@@ -589,7 +596,7 @@ async function readRuntimeData(): Promise<RuntimeData> {
 }
 
 async function writeRuntimeData(data: RuntimeData) {
-  await mkdir(dataDirectory, { recursive: true, mode: 0o700 });
+  await mkdir(runtimeDirectory, { recursive: true, mode: 0o700 });
   const temporaryPath = `${runtimePath}.${randomUUID()}.tmp`;
   await writeFile(temporaryPath, `${JSON.stringify(data, null, 2)}\n`, {
     encoding: "utf8",

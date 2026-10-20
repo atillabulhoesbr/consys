@@ -44,13 +44,24 @@ pedido exclusivamente na entrada do app do morador em `/app`.
 Credenciais locais de teste ficam em `.env.local`, ignorado pelo Git. Não
 documente nem copie senhas para arquivos versionados ou ambientes compartilhados.
 
-O armazenamento JSON serve exclusivamente para desenvolvimento local: não tem
-transações entre processos, persistência confiável em serverless, backup,
-replicação, proteção contra acesso ao filesystem do host ou limitação de
-tentativas distribuída. Por isso a aplicação recusa esse modo em `production`.
-Se as duas variáveis públicas de Supabase estiverem configuradas, o modo JSON
-também é recusado; não há fallback silencioso. O adaptador de Auth/autorização
-Supabase deverá ser implementado antes de ativar essa configuração.
+O modo JSON padrão serve para desenvolvimento local: não tem transações entre
+processos, persistência confiável em serverless, backup, replicação, proteção
+contra acesso ao filesystem do host ou limitação de tentativas distribuída. Por
+isso a aplicação recusa esse modo em `production`.
+
+Uma exceção explícita, `CONSYS_DEMO_JSON=true`, permite uma demonstração
+temporária em produção sem Supabase. Nessa modalidade, tenants são lidos do
+JSON versionado e o runtime gravável fica em `/tmp/consys-demo-json`; alterações
+podem desaparecer em reinícios/deploys e divergir entre instâncias. O login
+provisiona o síndico restrito ao tenant `condominio-demo` por
+`DEMO_MANAGER_EMAIL`, `DEMO_MANAGER_PASSWORD` e `DEMO_MANAGER_NAME`. As
+credenciais `INITIAL_ADMIN_*` não são usadas nesse modo e o Super Admin global
+não é provisionado. A interface avisa que alterações não têm persistência
+garantida.
+
+Se qualquer configuração Supabase for parcialmente ou totalmente preenchida,
+o modo JSON é recusado; não há fallback silencioso. A exceção demo deve ser
+desligada e substituída por Auth/autorização/RLS Supabase antes da produção real.
 
 ## Isolamento por tenant
 

@@ -88,12 +88,42 @@ pelo síndico. Operações de gestão exigem Super Admin ou papel de síndico pa
 aquele tenant. Moradores veem cobranças da sua unidade, comunicados do
 condomínio e somente suas próprias reservas e chamados.
 
-O modo JSON é somente para desenvolvimento/teste local: não suporta
-concorrência entre processos, escala serverless, backup/replicação, bloqueio
-distribuído de tentativas ou persistência de produção. O sistema recusa usar
-JSON em `NODE_ENV=production`. Se qualquer configuração Supabase for
+O modo JSON padrão é destinado somente ao desenvolvimento/teste local: não
+suporta concorrência entre processos, escala serverless, backup/replicação,
+bloqueio distribuído de tentativas ou persistência de produção. O sistema
+recusa esse modo em `NODE_ENV=production`, exceto pela demonstração temporária
+explicitamente habilitada abaixo. Se qualquer configuração Supabase for
 preenchida, JSON é desativado; o adaptador Supabase de autenticação e
 autorização ainda precisa ser implementado antes dessa configuração.
+
+### Demonstração temporária na Vercel
+
+É possível habilitar uma demonstração JSON separada antes da produção com
+`CONSYS_DEMO_JSON=true` no ambiente Vercel. Essa exceção é aceita somente em
+produção e somente sem variáveis Supabase configuradas. Os tenants iniciais
+continuam sendo lidos de `dados_json/tenants.json`; os dados gravados pelo app
+vão para `/tmp` e podem desaparecer em reinícios/deploys ou ficar diferentes
+entre instâncias serverless. Não use para dados reais nem conte com persistência.
+
+Configure no ambiente Vercel, como variáveis privadas:
+
+- `DEMO_MANAGER_EMAIL`, `DEMO_MANAGER_PASSWORD` e `DEMO_MANAGER_NAME` para
+  provisionar o síndico restrito ao condomínio `condominio-demo`. A senha deve
+  ter ao menos 8 caracteres. Essa é a conta a compartilhar para demonstrar o
+  painel do condomínio.
+- `CONSYS_DEMO_JSON=true`.
+- `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` devem ficar
+  vazias/removidas até a migração para o modo Supabase.
+
+O Super Admin global não é provisionado nem pode entrar no modo demo; isso
+mantém a demonstração limitada ao condomínio de teste. As variáveis
+`INITIAL_ADMIN_*` ficam para o ambiente local e para o futuro ambiente
+administrativo de produção.
+
+O modo de demonstração não é o ambiente de produção: a persistência JSON
+compartilhada exige armazenamento externo ou um servidor com disco persistente.
+Para produção, desative `CONSYS_DEMO_JSON` e implemente/configure Supabase
+Auth, autorização e RLS antes do deploy.
 
 ## Supabase
 

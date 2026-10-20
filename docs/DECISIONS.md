@@ -36,9 +36,16 @@
   derivadas e sessões ficam em `runtime.json`, ignorado pelo Git.
 - Senhas são armazenadas como scrypt com salt; sessões usam token aleatório
   HTTP-only e apenas seu hash é persistido.
-- O modo JSON é negado em produção, quando credenciais Supabase estão
+- O modo JSON padrão é negado em produção, quando credenciais Supabase estão
   parcialmente configuradas, ou quando ambas estão configuradas mas o
   adaptador Supabase ainda não está pronto. Não há fallback silencioso.
+- Exceção temporária para demonstração Vercel: `CONSYS_DEMO_JSON=true` permite
+  runtime JSON em `/tmp/consys-demo-json` somente em produção sem Supabase. O
+  runtime é efêmero e específico por instância serverless; a interface avisa
+  sobre a ausência de persistência. `DEMO_MANAGER_*` provisiona um síndico
+  limitado ao tenant de demonstração e não cria acesso Super Admin.
+  `INITIAL_ADMIN_*` não são usados no demo. Esta exceção não representa suporte
+  a JSON para produção real.
 - JSON não é adequado a múltiplos processos/serverless; esta limitação é
   intencional e deve ser removida ao implementar Supabase.
 - Organizações criadas pelo painel são guardadas no runtime JSON local e não
