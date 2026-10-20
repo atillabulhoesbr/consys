@@ -57,8 +57,10 @@ export function ChargeForm({ client }: { client: string }) {
           <input className={inputClass} min="0.01" name="amount" placeholder="0,00" required step="0.01" type="number" />
         </label>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Feedback state={state} />
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        <div className="mr-auto">
+          <Feedback state={state} />
+        </div>
         <button
           className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#174c36] px-4 text-sm font-medium text-white transition hover:bg-[#103b2a] disabled:cursor-not-allowed disabled:opacity-60"
           disabled={pending}
@@ -123,8 +125,10 @@ export function AnnouncementForm({ client }: { client: string }) {
           <textarea className={`${inputClass} h-20 resize-y py-2`} maxLength={1600} name="pollOptions" />
         </label>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <Feedback state={state} />
+      <div className="flex flex-wrap items-center justify-end gap-3">
+        <div className="mr-auto">
+          <Feedback state={state} />
+        </div>
         <button
           className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-[#174c36] px-4 text-sm font-medium text-white transition hover:bg-[#103b2a] disabled:cursor-not-allowed disabled:opacity-60"
           disabled={pending}

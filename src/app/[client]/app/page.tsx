@@ -1,24 +1,21 @@
 import {
   Bell,
-  CalendarDays,
   CircleHelp,
   Clock3,
   FileText,
-  Home,
   Megaphone,
   ReceiptText,
-  UserRound,
 } from "lucide-react";
+import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import {
   ResidentPollVote,
-  ResidentReservationForm,
   ResidentTicketForm,
 } from "@/components/resident-forms";
+import { ResidentBottomNavigation } from "@/components/resident-bottom-navigation";
 import { getCurrentAccount } from "@/lib/auth";
 import { hasSupabaseConfiguration } from "@/lib/supabase/server";
 import {
-  listResidentReservations,
   listResidentTickets,
   listTenantAnnouncements,
   listTenantChargesForUnit,
@@ -48,14 +45,12 @@ export default async function ResidentAppPage({
   const unitCode = findResidentUnit(account, tenant);
   if (!unitCode) notFound();
 
-  const [charges, reservations, announcements, tickets] = await Promise.all([
+  const [charges, announcements, tickets] = await Promise.all([
     listTenantChargesForUnit(tenant.id, unitCode),
-    listResidentReservations(tenant.id, account.id),
     listTenantAnnouncements(tenant.id),
     listResidentTickets(tenant.id, account.id),
   ]);
   const visibleCharges = charges.slice(0, 5);
-  const visibleReservations = reservations.slice(0, 4);
   const visibleTickets = tickets.slice(0, 4);
   const openCharges = charges.filter((charge) => charge.status === "open");
   const latestAnnouncements = announcements.slice(0, 3);
@@ -66,16 +61,25 @@ export default async function ResidentAppPage({
   return (
     <main className="min-h-screen bg-[#f5f7f2] pb-28 text-[#173b2b]">
       <header className="sticky top-0 z-20 border-b border-[#e5ebe2] bg-white/95 backdrop-blur">
-        <div className="mx-auto flex max-w-3xl items-center px-5 py-3.5">
+        <div className="mx-auto flex max-w-3xl items-center justify-between px-5 py-3.5">
           <div className="flex items-center gap-3">
             <span className="flex size-10 items-center justify-center rounded-xl bg-[#174c36] text-[#d3fa62]">
-              <Bell aria-hidden="true" className="size-5" />
+              <span aria-hidden="true" className="text-sm font-bold">
+                C
+              </span>
             </span>
             <div>
               <p className="font-semibold">ConSys</p>
               <p className="text-xs text-[#788579]">{tenant.name}</p>
             </div>
           </div>
+          <Link
+            aria-label="Ir para notificações"
+            className="flex size-10 items-center justify-center rounded-xl text-[#657568] transition hover:bg-[#f5f7f2] hover:text-[#174c36] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5c8a32]"
+            href="#notificacoes"
+          >
+            <Bell aria-hidden="true" className="size-5" />
+          </Link>
         </div>
       </header>
       {process.env.NODE_ENV === "production" &&
@@ -232,11 +236,11 @@ export default async function ResidentAppPage({
           <SectionTitle
             icon={FileText}
             title="Atas e assembleias"
-            detail="Informações importantes da vida condominial"
+            detail="Próximas reuniões e histórico"
           />
           {assemblyAnnouncements.length ? (
             <div className="mt-3 space-y-3">
-              {assemblyAnnouncements.map((announcement) => (
+              {assemblyAnnouncements.slice(0, 2).map((announcement) => (
                 <article
                   className="rounded-2xl border border-[#e5ebe2] bg-white p-4 shadow-sm shadow-[#24452b]/[0.03]"
                   key={announcement.id}
@@ -254,44 +258,26 @@ export default async function ResidentAppPage({
                   </p>
                 </article>
               ))}
+              <Link
+                className="inline-flex min-h-11 items-center text-sm font-semibold text-[#47713d] hover:text-[#174c36]"
+                href={`/${tenant.slug}/assembleias`}
+              >
+                Ver próximas e histórico
+              </Link>
             </div>
           ) : (
-            <EmptyCard>
-              Atas e informações de assembleias aparecerão aqui.
-            </EmptyCard>
-          )}
-        </section>
-
-        <section className="mt-7">
-          <SectionTitle
-            icon={CalendarDays}
-            title="Reservas"
-            detail="Solicite um espaço e acompanhe o andamento"
-          />
-          <article className="mt-3 rounded-2xl border border-[#e5ebe2] bg-white p-4 shadow-sm shadow-[#24452b]/[0.03] sm:p-5">
-            <ResidentReservationForm client={client} />
-          </article>
-          {visibleReservations.length ? (
-            <div className="mt-3 space-y-2">
-              {visibleReservations.map((reservation) => (
-                <article
-                  className="flex items-center justify-between gap-3 rounded-xl border border-[#e5ebe2] bg-white p-3.5"
-                  key={reservation.id}
-                >
-                  <div>
-                    <p className="text-sm font-semibold">{reservation.space}</p>
-                    <p className="mt-1 text-xs text-[#788579]">
-                      {new Date(`${reservation.date}T12:00:00`).toLocaleDateString(
-                        "pt-BR",
-                      )}{" "}
-                      · {reservation.startsAt}–{reservation.endsAt}
-                    </p>
-                  </div>
-                  <StatusPill status={reservation.status} />
-                </article>
-              ))}
+            <div className="mt-3">
+              <EmptyCard>
+                Atas e informações de assembleias aparecerão aqui.
+              </EmptyCard>
+              <Link
+                className="mt-2 inline-flex min-h-11 items-center text-sm font-semibold text-[#47713d] hover:text-[#174c36]"
+                href={`/${tenant.slug}/assembleias`}
+              >
+                Ver página de assembleias
+              </Link>
             </div>
-          ) : null}
+          )}
         </section>
 
         <section className="mt-7">
@@ -364,58 +350,15 @@ export default async function ResidentAppPage({
           </p>
         </section>
 
-        <section
-          aria-labelledby="resident-profile-title"
-          className="mt-7 scroll-mt-24"
-          id="perfil"
-        >
-          <SectionTitle
-            icon={UserRound}
-            title="Meu perfil"
-            detail="Seus dados de acesso e unidade"
-          />
-          <article className="mt-3 rounded-2xl border border-[#e5ebe2] bg-white p-4 shadow-sm shadow-[#24452b]/[0.03]">
-            <h3 className="font-semibold" id="resident-profile-title">
-              {account.name}
-            </h3>
-            <p className="mt-1 text-sm text-[#657568]">{account.email}</p>
-            <p className="mt-3 border-t border-[#edf1ea] pt-3 text-sm text-[#788579]">
-              Unidade: {unitCode}
-            </p>
-          </article>
-        </section>
-
         <p className="py-8 text-center text-xs text-[#9ba79a]">
           ConSys · Seu condomínio, mais perto.
         </p>
       </div>
 
-      <nav
-        aria-label="Navegação do app"
-        className="fixed inset-x-0 bottom-0 z-30 mx-auto grid max-w-3xl grid-cols-4 border-t border-[#e5ebe2] bg-white/95 px-2 pt-2 pb-[calc(env(safe-area-inset-bottom)+0.5rem)] shadow-[0_-8px_24px_rgba(23,59,43,0.06)] backdrop-blur"
-      >
-        {[
-          { label: "Início", href: "#inicio", icon: Home },
-          { label: "Notificações", href: "#notificacoes", icon: Bell },
-          {
-            label: "Assembleias",
-            href: "#assembleias",
-            icon: FileText,
-            ariaLabel: "Atas e assembleias",
-          },
-          { label: "Perfil", href: "#perfil", icon: UserRound },
-        ].map(({ label, href, icon: Icon, ariaLabel }) => (
-          <a
-            aria-label={ariaLabel ?? label}
-            className="flex min-h-12 flex-col items-center justify-center gap-1 rounded-lg px-1 text-[10px] font-medium text-[#657568] transition hover:bg-[#f5f7f2] hover:text-[#174c36] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#5c8a32] sm:text-xs"
-            href={href}
-            key={label}
-          >
-            <Icon aria-hidden="true" className="size-5" />
-            <span>{label}</span>
-          </a>
-        ))}
-      </nav>
+      <ResidentBottomNavigation
+        currentSection="home"
+        tenantSlug={tenant.slug}
+      />
     </main>
   );
 }

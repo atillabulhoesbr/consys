@@ -106,9 +106,9 @@ export function CreateTenantForm() {
           </label>
         </div>
       </div>
-      <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+      <div className="flex flex-col items-end gap-3 sm:flex-row sm:items-center sm:justify-end">
         <p
-          className={`text-sm ${state.error ? "text-rose-700" : "text-[#47713d]"}`}
+          className={`mr-auto self-start text-sm ${state.error ? "text-rose-700" : "text-[#47713d]"}`}
           aria-live="polite"
         >
           {state.error ?? state.success}

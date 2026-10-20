@@ -40,6 +40,8 @@
   aprovação/resposta.
 - Substituir notificações visuais no painel por canal de email/push.
 - Configurar senha temporária, recuperação e troca de senha para moradores.
+- Implementar anexos de foto nos chamados dos moradores; o botão de anexo está
+  visível, mas permanece desativado até existir suporte de envio e armazenamento.
 
 ## Validação final
 

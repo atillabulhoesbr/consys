@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { ArrowRight, LoaderCircle, Plus } from "lucide-react";
+import { ArrowRight, Camera, LoaderCircle, Plus } from "lucide-react";
 import {
   createResidentReservationAction,
   createResidentTicketAction,
@@ -39,18 +39,20 @@ function SubmitButton({
   children: string;
 }) {
   return (
-    <button
-      className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#174c36] px-4 text-sm font-semibold text-white transition hover:bg-[#103b2a] disabled:cursor-not-allowed disabled:opacity-60"
-      disabled={pending}
-      type="submit"
-    >
-      {pending ? (
-        <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
-      ) : (
-        <Plus aria-hidden="true" className="size-4" />
-      )}
-      {children}
-    </button>
+    <div className="flex justify-end">
+      <button
+        className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#174c36] px-4 text-sm font-semibold text-white transition hover:bg-[#103b2a] disabled:cursor-not-allowed disabled:opacity-60"
+        disabled={pending}
+        type="submit"
+      >
+        {pending ? (
+          <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
+        ) : (
+          <Plus aria-hidden="true" className="size-4" />
+        )}
+        {children}
+      </button>
+    </div>
   );
 }
 
@@ -268,7 +270,28 @@ export function ResidentTicketForm({ client }: { client: string }) {
         />
       </label>
       <Feedback state={state} />
-      <SubmitButton pending={pending}>Enviar chamado</SubmitButton>
+      <div className="flex items-center justify-between gap-3">
+        <button
+          className="inline-flex min-h-10 items-center justify-center gap-2 rounded-xl border border-[#dce5d8] bg-white px-3 text-xs font-semibold text-[#47713d] opacity-60"
+          disabled
+          title="Anexos de foto estarão disponíveis em breve"
+          type="button"
+        >
+          <Camera aria-hidden="true" className="size-4" />
+          Anexar foto
+        </button>
+        <button
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[#174c36] px-4 text-sm font-semibold text-white transition hover:bg-[#103b2a] disabled:cursor-not-allowed disabled:opacity-60"
+          disabled={pending}
+          type="submit"
+        >
+          {pending ? (
+            <LoaderCircle aria-hidden="true" className="size-4 animate-spin" />
+          ) : null}
+          Enviar chamado
+          {!pending ? <ArrowRight aria-hidden="true" className="size-4" /> : null}
+        </button>
+      </div>
     </form>
   );
 }

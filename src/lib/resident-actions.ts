@@ -192,6 +192,7 @@ export async function createResidentReservationAction(
   }
 
   revalidatePath(`/${input.data.client}/app`);
+  revalidatePath(`/${input.data.client}/agenda`);
   revalidatePath(`/${input.data.client}/reservas`);
   return { error: null, success: "Solicitação enviada para a administração." };
 }
