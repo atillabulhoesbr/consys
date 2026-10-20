@@ -129,6 +129,8 @@ PostgreSQL são modos distintos, não uma sincronização ou fallback automátic
 ## Estrutura
 
 - `src/app`: landing page e rotas App Router.
+- `src/app/icon.svg`: favicon ConSys em vetor, com o símbolo de edifício e a
+  paleta verde/lima da identidade visual.
 - `src/app/[client]/login`: login por ambiente do cliente.
 - `src/app/app`: identificação do condomínio para entrar no app.
 - `src/app/[client]/app`: app web do morador.
