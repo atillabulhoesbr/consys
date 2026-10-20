@@ -48,13 +48,15 @@ export function AppPromo() {
           </ul>
         </div>
 
-        <div className="relative mx-auto flex min-h-[28rem] w-full max-w-2xl items-center justify-center gap-4 sm:min-h-[34rem] sm:gap-8">
-          <div
-            aria-hidden="true"
-            className="absolute left-1/2 top-1/2 size-[24rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#e7efd9] sm:size-[30rem]"
-          />
-          <PhoneMockup className="relative z-10 -rotate-[7deg] translate-y-5" variant="notices" />
-          <PhoneMockup className="relative z-20 rotate-[6deg] -translate-y-5" variant="home" />
+        <div className="relative mx-auto aspect-square w-full max-w-xl min-w-0 [container-type:inline-size]">
+          <div className="absolute left-0 top-0 flex size-[36rem] origin-top-left items-center justify-center gap-8 [transform:scale(tan(atan2(100cqw,36rem)))]">
+            <div
+              aria-hidden="true"
+              className="absolute left-1/2 top-1/2 size-[30rem] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#e7efd9]"
+            />
+            <PhoneMockup className="relative z-10 -rotate-[7deg] translate-y-5" variant="notices" />
+            <PhoneMockup className="relative z-20 rotate-[6deg] -translate-y-5" variant="home" />
+          </div>
         </div>
       </div>
     </section>
@@ -75,7 +77,7 @@ function PhoneMockup({
           ? "Prévia do app ConSys para celular"
           : "Prévia das regras e comunicados do app ConSys"
       }
-      className={`w-[min(43vw,15rem)] rounded-[2.4rem] border-[5px] border-[#163d2d] bg-[#163d2d] p-1.5 shadow-2xl shadow-[#183b2b]/25 sm:w-60 ${className}`}
+      className={`w-60 shrink-0 rounded-[2.4rem] border-[5px] border-[#163d2d] bg-[#163d2d] p-1.5 shadow-2xl shadow-[#183b2b]/25 ${className}`}
       role="img"
     >
       <div className="overflow-hidden rounded-[1.9rem] bg-[#f7f9f5]">
@@ -86,17 +88,17 @@ function PhoneMockup({
             <span className="h-1 w-12 rounded-full bg-[#163d2d]" />
           )}
         </div>
-        <div className="min-h-[19rem] px-3 pb-4 sm:min-h-[23rem] sm:px-4">
+        <div className="min-h-[23rem] px-4 pb-4">
           <div className="flex items-center justify-between pt-2">
             <div className="flex items-center gap-2">
               <span className="flex size-7 items-center justify-center rounded-lg bg-[#174c36] text-[#d3fa62]">
                 <Bell aria-hidden="true" className="size-3.5" />
               </span>
               <div>
-                <p className="text-[9px] font-bold text-[#173b2b] sm:text-[10px]">
+                <p className="text-[10px] font-bold text-[#173b2b]">
                   ConSys
                 </p>
-                <p className="text-[7px] text-[#788579] sm:text-[8px]">
+                <p className="text-[8px] text-[#788579]">
                   Residencial Modelo
                 </p>
               </div>
@@ -107,13 +109,13 @@ function PhoneMockup({
           {variant === "home" ? (
             <>
               <div className="mt-5">
-                <p className="text-[8px] text-[#5c8a32] sm:text-[9px]">
+                <p className="text-[9px] text-[#5c8a32]">
                   Bloco A · Unidade 402
                 </p>
-                <h3 className="mt-1 text-sm font-bold text-[#173b2b] sm:text-base">
+                <h3 className="mt-1 text-base font-bold text-[#173b2b]">
                   Olá, Marina
                 </h3>
-                <p className="mt-1 text-[8px] text-[#788579] sm:text-[9px]">
+                <p className="mt-1 text-[9px] text-[#788579]">
                   Seu condomínio em um só lugar
                 </p>
               </div>
@@ -126,7 +128,7 @@ function PhoneMockup({
                   <CalendarDays aria-hidden="true" className="size-3" />
                   <span className="text-[8px] font-semibold">Reservas</span>
                 </div>
-                <p className="mt-2 text-[9px] font-semibold sm:text-[10px]">
+                <p className="mt-2 text-[10px] font-semibold">
                   Reserve seu espaço
                 </p>
                 <p className="mt-1 text-[7px] text-white/75">
@@ -148,10 +150,10 @@ function PhoneMockup({
           ) : (
             <>
               <div className="mt-5">
-                <p className="text-[8px] text-[#5c8a32] sm:text-[9px]">
+                <p className="text-[9px] text-[#5c8a32]">
                   Fique por dentro
                 </p>
-                <h3 className="mt-1 text-sm font-bold text-[#173b2b] sm:text-base">
+                <h3 className="mt-1 text-base font-bold text-[#173b2b]">
                   Mural do condomínio
                 </h3>
               </div>
@@ -159,10 +161,10 @@ function PhoneMockup({
                 <span className="rounded-full bg-[#eff5e9] px-2 py-1 text-[7px] font-semibold text-[#47713d]">
                   REGRAS DO CONDOMÍNIO
                 </span>
-                <h4 className="mt-3 text-[9px] font-bold text-[#173b2b] sm:text-[10px]">
+                <h4 className="mt-3 text-[10px] font-bold text-[#173b2b]">
                   Uso das áreas comuns
                 </h4>
-                <p className="mt-1 text-[7px] leading-4 text-[#657568] sm:text-[8px]">
+                <p className="mt-1 text-[8px] leading-4 text-[#657568]">
                   Consulte os horários e orientações para aproveitar nossos
                   espaços com tranquilidade.
                 </p>
@@ -215,7 +217,7 @@ function MiniCard({ label, value }: { label: string; value: string }) {
 
 function RuleRow({ children }: { children: string }) {
   return (
-    <div className="flex items-center gap-1.5 text-[7px] leading-3 text-[#657568] sm:text-[8px]">
+    <div className="flex items-center gap-1.5 text-[8px] leading-3 text-[#657568]">
       <Check aria-hidden="true" className="size-2.5 shrink-0 text-[#5c8a32]" />
       {children}
     </div>

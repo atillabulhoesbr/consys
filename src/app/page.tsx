@@ -283,7 +283,7 @@ export default function Home() {
                 <li>
                   <Link
                     className="transition hover:text-white"
-                    href="/condominio-demo/login"
+                    href="/app"
                   >
                     Acesse o app
                   </Link>
