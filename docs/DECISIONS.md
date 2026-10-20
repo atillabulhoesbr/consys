@@ -109,9 +109,8 @@
   permanece no fluxo normal da página e não cobre o conteúdo.
 - CTAs de acesso da LP levam ao login web do síndico em `/admin/login`. O link
   separado **Acesse o app** abre a simulação web do morador em
-  `/condominio-demo/login`; credenciais de demonstração ficam somente no
-  runtime local, não são versionadas e não devem ser usadas fora do
-  desenvolvimento.
+  `/app`, onde o morador informa o código do condomínio ativo. O link não
+  depende de um condomínio de demonstração cadastrado.
 - A identidade visual segue a referência enviada: superfícies claras e brancas,
   texto verde profundo, verde natural nos controles principais e lima como
   acento pontual. A interface evita fundo preto e gradientes neon para manter
