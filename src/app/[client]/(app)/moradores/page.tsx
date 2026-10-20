@@ -65,7 +65,7 @@ export default async function ResidentsPage({
                 </div>
                 <form
                   action={reviewResidentRegistrationAction}
-                  className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto_auto]"
+                  className="mt-5 grid gap-3 sm:grid-cols-[1fr_auto]"
                 >
                   <input name="client" type="hidden" value={client} />
                   <input
@@ -84,22 +84,24 @@ export default async function ResidentsPage({
                       placeholder="Ex.: Bloco A · 402"
                     />
                   </label>
-                  <button
-                    className="self-end rounded-lg bg-[#174c36] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#103b2a]"
-                    name="decision"
-                    type="submit"
-                    value="approve"
-                  >
-                    Aprovar acesso
-                  </button>
-                  <button
-                    className="self-end rounded-lg border border-[#dce5d8] px-4 py-2.5 text-sm font-medium text-[#657568] hover:bg-[#f7f9f5]"
-                    name="decision"
-                    type="submit"
-                    value="reject"
-                  >
-                    Recusar
-                  </button>
+                  <div className="flex justify-end gap-2 sm:col-start-2">
+                    <button
+                      className="self-end rounded-lg bg-[#174c36] px-4 py-2.5 text-sm font-medium text-white hover:bg-[#103b2a]"
+                      name="decision"
+                      type="submit"
+                      value="approve"
+                    >
+                      Aprovar acesso
+                    </button>
+                    <button
+                      className="self-end rounded-lg border border-[#dce5d8] px-4 py-2.5 text-sm font-medium text-[#657568] hover:bg-[#f7f9f5]"
+                      name="decision"
+                      type="submit"
+                      value="reject"
+                    >
+                      Recusar
+                    </button>
+                  </div>
                 </form>
               </article>
             ))}

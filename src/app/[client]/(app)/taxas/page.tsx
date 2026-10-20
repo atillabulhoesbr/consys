@@ -104,7 +104,7 @@ export default async function ChargesPage({
                       {canManageTenant(context.account, context.tenant) ? (
                         <td className="px-5 py-4">
                           {charge.status === "open" ? (
-                            <form action={markChargePaidAction}>
+                            <form action={markChargePaidAction} className="text-right">
                               <input name="client" type="hidden" value={client} />
                               <input name="chargeId" type="hidden" value={charge.id} />
                               <button className="text-xs font-medium text-[#47713d] hover:underline" type="submit">

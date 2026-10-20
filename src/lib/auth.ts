@@ -47,7 +47,9 @@ const demoSessionSchema = z.object({
 export type PublicAccount = Pick<
   Account,
   "id" | "email" | "name" | "platformRole"
->;
+> & {
+  avatarUrl: string | null;
+};
 export type AuthenticatedAccount = PublicAccount &
   Pick<
     Account,
@@ -490,6 +492,7 @@ export async function getCurrentAccount(): Promise<AuthenticatedAccount | null> 
       id: user.id,
       email: user.email ?? "",
       name: profileResult.data.full_name,
+      avatarUrl: getAvatarUrl(user.user_metadata?.avatar_url),
       platformRole: roleResult.data?.role === "super_admin" ? "super_admin" : null,
       tenantIds: [
         ...new Set([
@@ -596,8 +599,20 @@ function toPublicAccount(account: Account): PublicAccount {
     id: account.id,
     email: account.email,
     name: account.name,
+    avatarUrl: null,
     platformRole: account.platformRole,
   };
+}
+
+function getAvatarUrl(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
 }
 
 function toAuthenticatedAccount(account: Account): AuthenticatedAccount {

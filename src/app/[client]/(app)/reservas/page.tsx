@@ -73,7 +73,7 @@ export default async function ReservationsPage({
                     </div>
                   </div>
                   {reservation.status === "pending" ? (
-                    <div className="flex gap-2">
+                    <div className="ml-auto flex justify-end gap-2">
                       <StatusButton
                         client={client}
                         id={reservation.id}

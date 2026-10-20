@@ -96,6 +96,23 @@ vinculado àquele tenant.
   estado de atendimento.
 - A página `/app` recebe o código público do condomínio e redireciona para seu
   login/cadastro. `/{client}/app` é o app web responsivo dos moradores.
+- O item Perfil da navegação inferior abre `/{client}/perfil`, que mostra os
+  dados do usuário autenticado, email, foto de perfil disponível na metadata
+  Auth e unidade autorizada para aquele tenant. A barra inferior permanece nas
+  telas do morador; Início retorna ao app e os demais itens apontam para as
+  áreas correspondentes.
+- A tela `/{client}/assembleias` apresenta a seção de próximas reuniões e o
+  histórico pesquisável de comunicados da categoria assembleia, com filtro
+  pelo período de publicação. O modelo atual de comunicados não armazena data
+  agendada da reunião ou arquivo de ata; por isso, a seção de próximas fica
+  vazia até existir suporte de cadastro para esses dados.
+- A página `/{client}/agenda` concentra solicitações de reserva dos espaços
+  comuns e a agenda de reservas do morador. O item Agenda fica na navegação
+  inferior; o atalho de notificações fica no topo da home e leva ao mural.
+- A navegação inferior reserva o centro para um atalho visual de câmera,
+  desativado até que exista um fluxo de captura/publicação.
+- Botões de confirmação e envio em formulários operacionais ficam alinhados à
+  direita; feedback de validação permanece separado da ação principal.
 
 O síndico recebe indicação visual de pedidos de cadastro pendentes na sidebar e
 no dashboard. Ao aprovar, confirma unidade; a tela nunca exibe hash de senha.
