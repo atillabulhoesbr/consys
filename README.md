@@ -1,36 +1,139 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ConSys
 
-## Getting Started
+Plataforma de gestão condominial da MabFy Systems. A landing page pública está
+em `/`, o app do morador começa em `/app` e a administração geral fica em
+`/admin`. Cada condomínio recebe um link próprio (`/{slug}`).
 
-First, run the development server:
+## Requisitos
+
+- Node.js 20.9 ou superior e npm.
+- Docker apenas se for executar Supabase local.
+
+## Iniciar em modo local JSON
+
+1. Instale as dependências:
+
+   ```bash
+   npm install
+   ```
+
+2. `.env.local` é o arquivo local de desenvolvimento e contém uma conta de
+   demonstração. Deixe as variáveis Supabase vazias para usar o armazenamento
+   JSON local:
+
+   ```dotenv
+   NEXT_PUBLIC_SUPABASE_URL=
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=
+   INITIAL_ADMIN_EMAIL=admin@consys.com
+   INITIAL_ADMIN_PASSWORD=defina-uma-senha-local
+   INITIAL_ADMIN_NAME=Administrador ConSys
+   ```
+
+   Defina sua senha somente em `.env.local`, que está ignorado pelo Git. A
+   conta é criada no primeiro login e a senha é persistida somente como hash
+   scrypt em `dados_json/runtime.json`, também ignorado pelo Git.
+
+3. Inicie a aplicação:
+
+   ```bash
+   npm run dev
+   ```
+
+4. Acesse:
+
+   - LP ConSys: [http://localhost:3000](http://localhost:3000)
+   - Painel administrativo:
+     [http://localhost:3000/admin](http://localhost:3000/admin)
+   - Conta local de teste: email e senha definidos em `.env.local`
+   - Entrada do app do morador:
+     [http://localhost:3000/app](http://localhost:3000/app)
+   - App do condomínio de demonstração:
+     [http://localhost:3000/condominio-demo/login](http://localhost:3000/condominio-demo/login)
+
+As credenciais de demonstração são mantidas somente no runtime local e não
+devem ser publicadas. O síndico entra em `/admin/login`; o link **Acesse o
+app**, no rodapé da landing page, abre a simulação web do morador no condomínio
+de demonstração.
+
+O Admin Geral cadastra o condomínio e o primeiro síndico. Cada condomínio tem
+UUID próprio e código de entrada derivado do identificador (por exemplo,
+`residencial-modelo@consys.com`). O síndico compartilha esse código/link com os
+moradores.
+
+O acesso web administrativo é feito em `/admin/login` apenas com email e senha:
+o painel descobre o condomínio pelo vínculo da conta do síndico. Não é preciso
+informar o código/link do condomínio nesse login. O código público é usado
+somente no app, em `/app`.
+
+O morador entra por `/app`, informa o código do condomínio e solicita seu
+cadastro. O síndico vê os pedidos pendentes em **Moradores**, confirma a unidade
+e aprova ou recusa. Somente após a aprovação a conta é vinculada ao UUID e à
+unidade, e pode abrir o app em `/{client}/app`.
+
+O painel do condomínio exige conta de síndico vinculada ao tenant. Nele o
+síndico publica comunicados/regras/enquetes no Mural, administra cobranças,
+aprova ou recusa reservas solicitadas no app e responde a chamados abertos no
+app. Mural e taxas são lidos pelo app; chamados e reservas mostram ao morador
+somente os próprios registros. Não há processamento PIX/boleto.
+
+As imagens de celular na LP são prévias visuais do produto. Os botões App Store
+e Google Play permanecem indisponíveis até a publicação e configuração dos
+links oficiais.
+
+## Isolamento e limites atuais
+
+O código de entrada resolve para um tenant ativo; o código não autentica nem
+autoriza o morador. A sessão é comparada com associação de unidade provisionada
+pelo síndico. Operações de gestão exigem Super Admin ou papel de síndico para
+aquele tenant. Moradores veem cobranças da sua unidade, comunicados do
+condomínio e somente suas próprias reservas e chamados.
+
+O modo JSON é somente para desenvolvimento/teste local: não suporta
+concorrência entre processos, escala serverless, backup/replicação, bloqueio
+distribuído de tentativas ou persistência de produção. O sistema recusa usar
+JSON em `NODE_ENV=production`. Se qualquer configuração Supabase for
+preenchida, JSON é desativado; o adaptador Supabase de autenticação e
+autorização ainda precisa ser implementado antes dessa configuração.
+
+## Supabase
+
+Os clientes SSR e migrations relacionais estão preparados, mas as policies
+RLS específicas, Auth e bootstrap Supabase ainda não foram implementados. A
+migration habilita RLS sem policies permissivas. Não configure as variáveis
+Supabase esperando que o modo JSON seja usado como fallback.
+
+Com Docker instalado:
+
+```bash
+npm run db:start
+npm run db:reset
+npm run db:stop
+```
+
+Para o projeto remoto, configure o Supabase e aplique as migrations somente
+após revisar as policies da etapa de segurança.
+
+## Comandos úteis
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm run lint
+npm test
+npx tsc --noEmit
+npm run build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Deploy
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+A landing pode ser publicada na Vercel, mas o ambiente privado ainda não está
+pronto para produção. Não habilite o login em produção com armazenamento JSON.
+Antes de lançar, implemente e teste Auth Supabase, policies RLS, autorização
+server-side e mitigação de tentativas de login; então configure o host `app`,
+DNS e as variáveis Supabase. Não execute migrations destrutivas automaticamente
+no deploy.
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Documentação
 
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [Arquitetura](./docs/ARCHITECTURE.md)
+- [Decisões arquiteturais](./docs/DECISIONS.md)
+- [Backlog](./docs/BACKLOG.md)
