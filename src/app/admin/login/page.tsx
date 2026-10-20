@@ -3,9 +3,14 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AdminLoginForm } from "@/components/admin-login-form";
 import { getCurrentAccount } from "@/lib/auth";
+import { hasSupabaseConfiguration } from "@/lib/supabase/server";
 import { listTenants } from "@/lib/storage/json-store";
 
 export default async function AdminLoginPage() {
+  const supabaseRequired =
+    process.env.NODE_ENV === "production" &&
+    process.env.CONSYS_DEMO_JSON !== "true" &&
+    !hasSupabaseConfiguration();
   const account = await getCurrentAccount();
   if (account?.platformRole === "super_admin") {
     redirect("/admin");
@@ -48,8 +53,17 @@ export default async function AdminLoginPage() {
             Síndicos e administradores entram com email e senha. Não é
             necessário informar o link do condomínio.
           </p>
+          {supabaseRequired ? (
+            <p
+              className="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm leading-5 text-amber-900"
+              role="alert"
+            >
+              Login indisponível: configure a URL e a chave pública do Supabase
+              nas variáveis de ambiente da Vercel e faça um novo deploy.
+            </p>
+          ) : null}
           <div className="mt-7">
-            <AdminLoginForm />
+            <AdminLoginForm disabled={supabaseRequired} />
           </div>
           <div className="mt-6 flex items-start gap-2 border-t border-[#e8eee8] pt-5 text-xs leading-5 text-[#788579]">
             <ShieldCheck

@@ -23,16 +23,26 @@ valida os arquivos com Zod, serializa gravações dentro do processo e grava o
 runtime por arquivo temporário + rename. `runtime.json` é ignorado pelo Git,
 tem permissões restritas e armazena somente hashes de senha e de sessão.
 
-O primeiro Super Admin é criado no primeiro login a partir de
-`INITIAL_ADMIN_EMAIL`, `INITIAL_ADMIN_PASSWORD` e `INITIAL_ADMIN_NAME`; a senha
-é derivada com scrypt e nunca escrita em texto puro. O bootstrap só cria a
-conta se ainda não existir um Super Admin. Alterar essas variáveis depois não
-troca a senha de uma conta existente.
+No modo JSON local, o primeiro Super Admin é criado no primeiro login a partir
+de `INITIAL_ADMIN_EMAIL`, `INITIAL_ADMIN_PASSWORD` e `INITIAL_ADMIN_NAME`; a
+senha é derivada com scrypt e nunca escrita em texto puro. No modo Supabase, o
+primeiro Super Admin é provisionado uma única vez com `npm run
+db:bootstrap-admin`, usando a chave service role apenas no servidor. O script
+cria uma conta Auth confirmada e concede o papel global pela função
+`grant_initial_platform_admin`. O bootstrap Supabase foi executado no projeto
+ConSys em 20/10/2026. Alterar as variáveis depois não troca a senha de uma
+conta existente.
 
 O painel administrativo está em `/admin` e o login em `/admin/login`. A página
 do painel e a Server Action de criação de clientes verificam no servidor se a
 conta autenticada tem papel `super_admin`. Criar tenant também cria o primeiro
 síndico, com credencial scrypt e membership de gestão restrito ao tenant.
+O Super Admin é uma identidade global em `platform_roles`, sem membership,
+residente ou vínculo a condomínio; síndicos e moradores usam identidades Auth
+próprias, com perfil e vínculos associados ao ID do tenant. Em produção, sem
+Supabase configurado e sem o modo demo explicitamente habilitado, o acesso
+falha de forma fechada e a tela de login informa quais variáveis públicas
+precisam ser configuradas, sem tentar usar JSON.
 Tenants armazenam UUID interno, slug e código de entrada público no formato
 `{slug}@consys.com`.
 
@@ -40,6 +50,11 @@ O login web em `/admin/login` solicita email e senha, sem slug nem código do
 condomínio. O servidor direciona Super Admin para `/admin` e o síndico para o
 único tenant ativo vinculado ao seu usuário. O código público do condomínio é
 pedido exclusivamente na entrada do app do morador em `/app`.
+
+Dados de validação remota no Supabase: tenant `residencial-modelo`, síndico
+`sindico.modelo@consys.com` e morador `morador.modelo@consys.com`, aprovado e
+vinculado à unidade `A-101`. As senhas temporárias são compartilhadas fora da
+documentação e não devem ser usadas em produção.
 
 Credenciais locais de teste ficam em `.env.local`, ignorado pelo Git. Não
 documente nem copie senhas para arquivos versionados ou ambientes compartilhados.

@@ -501,6 +501,10 @@ export async function getCurrentAccount(): Promise<AuthenticatedAccount | null> 
     };
   }
 
+  if (process.env.NODE_ENV === "production" && !isProductionJsonDemo()) {
+    return null;
+  }
+
   const cookieStore = await cookies();
   const rawToken = cookieStore.get(SESSION_COOKIE)?.value;
   if (isProductionJsonDemo()) {

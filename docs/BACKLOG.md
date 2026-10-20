@@ -2,10 +2,14 @@
 
 ## Em andamento — Validação remota Supabase
 
-- Aplicar e validar as migrations no projeto Supabase ConSys.
-- Configurar URL, chave Publishable e service role nas variáveis seguras do
-  ambiente local/Vercel; manter a service role somente server-side.
-- Criar o primeiro Super Admin pelo script de bootstrap de uso único.
+- Migrations aplicadas; Super Admin global e tenant de teste verificados no
+  Supabase.
+- Login Supabase verificado para Super Admin, síndico e morador; morador
+  aprovado e vinculado à unidade `A-101`.
+- Investigar erro 500 intermitente no login administrativo do deployment
+  `consys-hazel.vercel.app`; validar configuração de URL/chave pública e
+  service role, além dos logs do deployment Vercel. A tela agora falha fechada
+  e informa quando faltam as variáveis públicas.
 - Testar login, aprovação de moradores e operações RLS com dois tenants e
   usuários distintos, inclusive tentativa de adulterar tenant/unidade.
 - Adicionar teste de rota e Server Action simulando adulteração de slug/IDs.
@@ -15,7 +19,7 @@
 
 ## Administração da plataforma
 
-- Cadastro, edição, ativação e suspensão de organizações.
+- Edição, ativação e suspensão de organizações.
 - Provisionamento de administradores e fluxo de recuperação de senha.
 
 ## Gestão condominial

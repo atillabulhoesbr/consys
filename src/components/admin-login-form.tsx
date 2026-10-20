@@ -9,7 +9,7 @@ import {
 
 const initialState: AdminLoginState = { error: null };
 
-export function AdminLoginForm() {
+export function AdminLoginForm({ disabled = false }: { disabled?: boolean }) {
   const [state, formAction, isPending] = useActionState(
     adminLoginAction,
     initialState,
@@ -29,6 +29,7 @@ export function AdminLoginForm() {
           name="email"
           placeholder="sindico@exemplo.com"
           required
+          disabled={disabled}
           type="email"
         />
       </div>
@@ -47,6 +48,7 @@ export function AdminLoginForm() {
           name="password"
           placeholder="Sua senha"
           required
+          disabled={disabled}
           type="password"
         />
       </div>
@@ -60,7 +62,7 @@ export function AdminLoginForm() {
       ) : null}
       <button
         className="flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#174c36] px-4 text-sm font-semibold text-white transition hover:bg-[#103b2a] disabled:cursor-not-allowed disabled:opacity-60"
-        disabled={isPending}
+        disabled={isPending || disabled}
         type="submit"
       >
         {isPending ? (

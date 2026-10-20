@@ -14,6 +14,7 @@ import {
   findTenantBySlug,
   listTenants,
 } from "@/lib/storage/json-store";
+import { hasSupabaseConfiguration } from "@/lib/supabase/server";
 import { canManageTenant, isValidTenantSlug } from "@/lib/tenant-access";
 
 export type LoginState = {
@@ -92,6 +93,17 @@ export async function adminLoginAction(
   _previousState: AdminLoginState,
   formData: FormData,
 ): Promise<AdminLoginState> {
+  if (
+    process.env.NODE_ENV === "production" &&
+    process.env.CONSYS_DEMO_JSON !== "true" &&
+    !hasSupabaseConfiguration()
+  ) {
+    return {
+      error:
+        "Login indisponível: configure NEXT_PUBLIC_SUPABASE_URL e a chave pública do Supabase na Vercel.",
+    };
+  }
+
   const input = credentialsSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
