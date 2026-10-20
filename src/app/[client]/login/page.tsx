@@ -1,12 +1,9 @@
 import { ArrowLeft, Blocks, ShieldCheck, UserRoundPlus } from "lucide-react";
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { ResidentLoginForm } from "@/components/resident-forms";
-import { getCurrentAccount } from "@/lib/auth";
 import { findTenantBySlug } from "@/lib/storage/json-store";
 import {
-  canAccessTenantPortal,
-  findResidentUnit,
   isValidTenantSlug,
 } from "@/lib/tenant-access";
 
@@ -22,13 +19,6 @@ export default async function LoginPage({
 
   const tenant = await findTenantBySlug(client);
   if (!tenant || tenant.status !== "active") {
-    notFound();
-  }
-
-  const account = await getCurrentAccount();
-  if (account) {
-    if (findResidentUnit(account, tenant)) redirect(`/${tenant.slug}/app`);
-    if (canAccessTenantPortal(account, tenant)) redirect(`/${tenant.slug}`);
     notFound();
   }
 
@@ -55,7 +45,7 @@ export default async function LoginPage({
             Acesse o app do condomínio
           </h1>
           <p className="mt-2 text-sm leading-6 text-[#657568]">
-            Moradores e síndicos entram no espaço de{" "}
+            Entre com seu email e senha de morador para acessar{" "}
             <span className="font-medium text-[#315541]">{tenant.name}</span>.
           </p>
           <div className="mt-7">

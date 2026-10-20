@@ -96,6 +96,10 @@ vinculado àquele tenant.
   estado de atendimento.
 - A página `/app` recebe o código público do condomínio e redireciona para seu
   login/cadastro. `/{client}/app` é o app web responsivo dos moradores.
+  A tela `/{client}/login` sempre solicita email e senha do morador, mesmo
+  com uma sessão administrativa aberta. Esse login exige vínculo de morador
+  e unidade no condomínio e redireciona somente para `/{client}/app`;
+  o acesso do síndico permanece em `/admin/login`.
 - O item Perfil da navegação inferior abre `/{client}/perfil`, que mostra os
   dados do usuário autenticado, email, foto de perfil disponível na metadata
   Auth e unidade autorizada para aquele tenant. A barra inferior permanece nas

@@ -22,7 +22,7 @@ import {
   authorizeTenantAdministrator,
   authorizeTenantResident,
 } from "@/lib/tenant-authorization";
-import { canManageTenant, findResidentUnit, isValidTenantSlug } from "@/lib/tenant-access";
+import { findResidentUnit, isValidTenantSlug } from "@/lib/tenant-access";
 
 export type ResidentActionState = {
   error: string | null;
@@ -96,7 +96,7 @@ export async function residentLoginAction(
     return { error: "Não foi possível acessar esse espaço.", success: null };
   }
 
-  const account = await authenticate(input.data.email, input.data.password);
+  const account = await authenticate(input.data.email, input.data.password, "resident");
   const currentAccount = account ? await getCurrentAccount() : null;
   if (!currentAccount) {
     return { error: "Email ou senha inválidos.", success: null };
@@ -104,9 +104,6 @@ export async function residentLoginAction(
 
   if (findResidentUnit(currentAccount, tenant)) {
     redirect(`/${tenant.slug}/app`);
-  }
-  if (canManageTenant(currentAccount, tenant)) {
-    redirect(`/${tenant.slug}`);
   }
   await destroyCurrentSession();
   return { error: "Email ou senha inválidos.", success: null };
