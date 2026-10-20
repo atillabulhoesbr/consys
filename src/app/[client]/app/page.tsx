@@ -129,7 +129,13 @@ export default async function ResidentAppPage({
           {latestAnnouncements.length ? (
             <div className="mt-3 space-y-3">
               {latestAnnouncements.map((announcement) => {
-                const voteCount = announcement.poll?.votes.length ?? 0;
+                const voteCount =
+                  announcement.poll?.voteCounts?.reduce(
+                    (total, count) => total + count,
+                    0,
+                  ) ??
+                  announcement.poll?.votes.length ??
+                  0;
                 const hasVoted =
                   announcement.poll?.votes.some(
                     (vote) => vote.userId === account.id,
@@ -168,9 +174,11 @@ export default async function ResidentAppPage({
                         <div className="mt-3 space-y-2">
                           {announcement.poll.options.map((option, index) => {
                             const votes =
+                              announcement.poll?.voteCounts?.[index] ??
                               announcement.poll?.votes.filter(
                                 (vote) => vote.optionIndex === index,
-                              ).length ?? 0;
+                              ).length ??
+                              0;
                             const percentage = voteCount
                               ? Math.round((votes / voteCount) * 100)
                               : 0;

@@ -44,7 +44,13 @@ export default async function BulletinPage({
       {announcements.length ? (
         <div className="mt-4 space-y-4">
           {announcements.map((announcement) => {
-            const voteCount = announcement.poll?.votes.length ?? 0;
+            const voteCount =
+              announcement.poll?.voteCounts?.reduce(
+                (total, count) => total + count,
+                0,
+              ) ??
+              announcement.poll?.votes.length ??
+              0;
             return (
               <article
                 className="rounded-2xl border border-[#e5ebe2] bg-white p-5 shadow-sm shadow-[#24452b]/[0.03] sm:p-6"
@@ -91,9 +97,11 @@ export default async function BulletinPage({
                     <div className="mt-4 space-y-2">
                       {announcement.poll.options.map((option, index) => {
                         const optionVotes =
+                          announcement.poll?.voteCounts?.[index] ??
                           announcement.poll?.votes.filter(
                             (vote) => vote.optionIndex === index,
-                          ).length ?? 0;
+                          ).length ??
+                          0;
                         const percentage = voteCount
                           ? Math.round((optionVotes / voteCount) * 100)
                           : 0;

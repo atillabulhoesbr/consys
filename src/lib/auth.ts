@@ -16,6 +16,7 @@ import {
   type Account,
   updateRuntimeData,
 } from "@/lib/storage/json-store";
+import { createClient, hasSupabaseConfiguration } from "@/lib/supabase/server";
 
 const SESSION_COOKIE = "consys_session";
 const SESSION_DURATION_SECONDS = 60 * 60 * 8;
@@ -252,6 +253,39 @@ export async function authenticate(
   password: string,
   requiredRole?: "super_admin" | "resident" | "manager",
 ) {
+  if (hasSupabaseConfiguration()) {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+    if (error) {
+      if (error.status === 400 || error.status === 401) return null;
+      throw new Error(`Falha ao autenticar no Supabase: ${error.message}`);
+    }
+
+    const account = await getCurrentAccount();
+    const hasRequiredRole =
+      !account ||
+      (requiredRole === "super_admin" &&
+        account.platformRole === "super_admin") ||
+      (requiredRole === "resident" &&
+        account.platformRole === null &&
+        account.unitMemberships.length > 0) ||
+      (requiredRole === "manager" &&
+        (account.platformRole === "super_admin" ||
+          account.managerTenantIds.length > 0)) ||
+      requiredRole === undefined;
+    if (!account || !hasRequiredRole) {
+      await supabase.auth.signOut();
+      return null;
+    }
+    return toPublicAccount({
+      ...account,
+      passwordHash: "supabase-auth",
+    });
+  }
+
   if (isProductionJsonDemo()) {
     const demoAccounts = await getProductionDemoAccounts();
     const demoAccount = demoAccounts.find(
@@ -340,6 +374,133 @@ export async function authenticate(
 }
 
 export async function getCurrentAccount(): Promise<AuthenticatedAccount | null> {
+  if (hasSupabaseConfiguration()) {
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+    if (userError) {
+      throw new Error(`Falha ao validar sessão Supabase: ${userError.message}`);
+    }
+    if (!user) return null;
+
+    const [profileResult, roleResult, membershipsResult, residentsResult] =
+      await Promise.all([
+        supabase
+          .from("profiles")
+          .select("full_name")
+          .eq("id", user.id)
+          .maybeSingle(),
+        supabase
+          .from("platform_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .maybeSingle(),
+        supabase
+          .from("tenant_memberships")
+          .select("tenant_id, role")
+          .eq("user_id", user.id)
+          .eq("status", "active"),
+        supabase
+          .from("residents")
+          .select("id, tenant_id")
+          .eq("profile_id", user.id)
+          .eq("status", "active"),
+      ]);
+    for (const result of [
+      profileResult,
+      roleResult,
+      membershipsResult,
+      residentsResult,
+    ]) {
+      if (result.error) {
+        throw new Error(
+          `Falha ao carregar permissões Supabase: ${result.error.message}`,
+        );
+      }
+    }
+    if (!profileResult.data) {
+      throw new Error("O perfil Supabase desta conta ainda não foi provisionado.");
+    }
+
+    const membershipTenantIds = [
+      ...new Set((membershipsResult.data ?? []).map((item) => item.tenant_id)),
+    ];
+    const residentIds = (residentsResult.data ?? []).map((item) => item.id);
+    const [activeTenantsResult, unitResidentsResult] = await Promise.all([
+      membershipTenantIds.length
+        ? supabase
+            .from("tenants")
+            .select("id")
+            .in("id", membershipTenantIds)
+            .eq("status", "active")
+        : Promise.resolve({ data: [], error: null }),
+      residentIds.length
+        ? supabase
+            .from("unit_residents")
+            .select("tenant_id, resident_id, unit_id")
+            .in("resident_id", residentIds)
+            .eq("status", "active")
+        : Promise.resolve({ data: [], error: null }),
+    ]);
+    if (activeTenantsResult.error || unitResidentsResult.error) {
+      throw new Error(
+        `Falha ao carregar vínculos Supabase: ${activeTenantsResult.error?.message ?? unitResidentsResult.error?.message}`,
+      );
+    }
+
+    const activeTenantIds = new Set(
+      (activeTenantsResult.data ?? []).map((item) => item.id),
+    );
+    const residents = residentsResult.data ?? [];
+    const residentById = new Map(residents.map((resident) => [resident.id, resident]));
+    const unitLinks = unitResidentsResult.data ?? [];
+    const unitIds = [...new Set(unitLinks.map((link) => link.unit_id))];
+    const unitsResult = unitIds.length
+      ? await supabase.from("units").select("id, code").in("id", unitIds)
+      : { data: [], error: null };
+    if (unitsResult.error) {
+      throw new Error(`Falha ao carregar unidades Supabase: ${unitsResult.error.message}`);
+    }
+    const unitCodes = new Map(
+      (unitsResult.data ?? []).map((unit) => [unit.id, unit.code]),
+    );
+    const managerTenantIds = (membershipsResult.data ?? [])
+      .filter(
+        (membership) =>
+          membership.role === "condominium_admin" &&
+          activeTenantIds.has(membership.tenant_id),
+      )
+      .map((membership) => membership.tenant_id);
+    const unitMemberships = unitLinks.flatMap((link) => {
+      const resident = residentById.get(link.resident_id);
+      const unitCode = unitCodes.get(link.unit_id);
+      return resident &&
+        unitCode &&
+        resident.tenant_id === link.tenant_id &&
+        activeTenantIds.has(link.tenant_id)
+        ? [{ tenantId: link.tenant_id, unitCode }]
+        : [];
+    });
+
+    return {
+      id: user.id,
+      email: user.email ?? "",
+      name: profileResult.data.full_name,
+      platformRole: roleResult.data?.role === "super_admin" ? "super_admin" : null,
+      tenantIds: [
+        ...new Set([
+          ...managerTenantIds,
+          ...unitMemberships.map((membership) => membership.tenantId),
+        ]),
+      ],
+      managerTenantIds,
+      unitMemberships,
+      active: user.aud === "authenticated",
+    };
+  }
+
   const cookieStore = await cookies();
   const rawToken = cookieStore.get(SESSION_COOKIE)?.value;
   if (isProductionJsonDemo()) {
@@ -397,6 +558,15 @@ export async function getCurrentAccount(): Promise<AuthenticatedAccount | null> 
 }
 
 export async function destroyCurrentSession() {
+  if (hasSupabaseConfiguration()) {
+    const supabase = await createClient();
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      throw new Error(`Falha ao encerrar sessão Supabase: ${error.message}`);
+    }
+    return;
+  }
+
   const cookieStore = await cookies();
   const rawToken = cookieStore.get(SESSION_COOKIE)?.value;
   if (

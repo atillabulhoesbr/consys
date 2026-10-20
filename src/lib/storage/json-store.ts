@@ -5,6 +5,8 @@ import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { z } from "zod";
+import * as supabaseStore from "@/lib/supabase/store";
+import { hasSupabaseConfiguration } from "@/lib/supabase/server";
 
 const tenantSchema = z
   .object({
@@ -107,6 +109,7 @@ const announcementSchema = z.object({
           optionIndex: z.number().int().min(0).max(7),
         }),
       ),
+      voteCounts: z.array(z.number().int().nonnegative()).optional(),
     })
     .nullable(),
 });
@@ -182,6 +185,7 @@ function assertJsonStorageEnabled() {
 }
 
 export async function listTenants() {
+  if (hasSupabaseConfiguration()) return supabaseStore.listTenants();
   assertJsonStorageEnabled();
   const seededTenants = z.array(tenantSchema).parse(
     JSON.parse(await readFile(tenantsPath, "utf8")),
@@ -209,11 +213,15 @@ export async function listTenants() {
 }
 
 export async function findTenantBySlug(slug: string) {
+  if (hasSupabaseConfiguration()) return supabaseStore.findTenantBySlug(slug);
   const tenants = await listTenants();
   return tenants.find((tenant) => tenant.slug === slug) ?? null;
 }
 
 export async function findTenantByAppCode(appCode: string) {
+  if (hasSupabaseConfiguration()) {
+    return supabaseStore.findTenantByAppCode(appCode);
+  }
   const tenants = await listTenants();
   const normalizedCode = appCode.trim().toLowerCase();
   return tenants.find((tenant) => tenant.appCode === normalizedCode) ?? null;
@@ -222,8 +230,23 @@ export async function findTenantByAppCode(appCode: string) {
 export async function createTenant(
   name: string,
   slug: string,
-  manager: { name: string; email: string; passwordHash: string },
+  manager: {
+    name: string;
+    email: string;
+    passwordHash: string;
+    password?: string;
+  },
 ) {
+  if (hasSupabaseConfiguration()) {
+    if (!manager.password) {
+      throw new Error("A senha inicial do síndico é obrigatória no Supabase.");
+    }
+    return supabaseStore.createTenant(name, slug, {
+      name: manager.name,
+      email: manager.email,
+      password: manager.password,
+    });
+  }
   const input = tenantSchema.safeParse({
     id: randomUUID(),
     name: name.trim(),
@@ -275,7 +298,19 @@ export async function createResidentRegistration(input: {
   name: string;
   email: string;
   passwordHash: string;
+  password?: string;
 }) {
+  if (hasSupabaseConfiguration()) {
+    if (!input.password) {
+      throw new Error("A senha é necessária para provisionar a conta de morador.");
+    }
+    return supabaseStore.createResidentRegistration({
+      tenantId: input.tenantId,
+      name: input.name,
+      email: input.email,
+      password: input.password,
+    });
+  }
   return updateRuntimeData((data) => {
     const email = input.email.trim().toLowerCase();
     if (
@@ -305,6 +340,9 @@ export async function createResidentRegistration(input: {
 }
 
 export async function listResidentRegistrations(tenantId: string) {
+  if (hasSupabaseConfiguration()) {
+    return supabaseStore.listResidentRegistrations(tenantId);
+  }
   const data = await readRuntimeData();
   return data.residentRegistrations
     .filter(
@@ -328,6 +366,14 @@ export async function reviewResidentRegistration(
   decision: "approve" | "reject",
   unitCode?: string,
 ) {
+  if (hasSupabaseConfiguration()) {
+    return supabaseStore.reviewResidentRegistration(
+      tenantId,
+      registrationId,
+      decision,
+      unitCode,
+    );
+  }
   return updateRuntimeData((data) => {
     const registration = data.residentRegistrations.find(
       (item) =>
@@ -366,6 +412,7 @@ export async function reviewResidentRegistration(
 }
 
 export async function listTenantCharges(tenantId: string) {
+  if (hasSupabaseConfiguration()) return supabaseStore.listTenantCharges(tenantId);
   const data = await readRuntimeData();
   return data.charges
     .filter((charge) => charge.tenantId === tenantId)
@@ -376,6 +423,9 @@ export async function listTenantChargesForUnit(
   tenantId: string,
   unitCode: string,
 ) {
+  if (hasSupabaseConfiguration()) {
+    return supabaseStore.listTenantChargesForUnit(tenantId, unitCode);
+  }
   const charges = await listTenantCharges(tenantId);
   return charges.filter((charge) => charge.unitCode === unitCode);
 }
@@ -383,6 +433,9 @@ export async function listTenantChargesForUnit(
 export async function createTenantCharge(
   input: Omit<Charge, "id" | "createdAt" | "paidAt" | "status">,
 ) {
+  if (hasSupabaseConfiguration()) {
+    return supabaseStore.createTenantCharge(input);
+  }
   const charge = chargeSchema.parse({
     ...input,
     id: randomUUID(),
@@ -397,6 +450,9 @@ export async function createTenantCharge(
 }
 
 export async function markChargePaid(tenantId: string, chargeId: string) {
+  if (hasSupabaseConfiguration()) {
+    return supabaseStore.markChargePaid(tenantId, chargeId);
+  }
   return updateRuntimeData((data) => {
     const charge = data.charges.find(
       (item) => item.tenantId === tenantId && item.id === chargeId,
@@ -411,6 +467,9 @@ export async function markChargePaid(tenantId: string, chargeId: string) {
 }
 
 export async function listTenantReservations(tenantId: string) {
+  if (hasSupabaseConfiguration()) {
+    return supabaseStore.listTenantReservations(tenantId);
+  }
   const data = await readRuntimeData();
   return data.reservations
     .filter((reservation) => reservation.tenantId === tenantId)
@@ -421,6 +480,9 @@ export async function listResidentReservations(
   tenantId: string,
   userId: string,
 ) {
+  if (hasSupabaseConfiguration()) {
+    return supabaseStore.listResidentReservations(tenantId, userId);
+  }
   const reservations = await listTenantReservations(tenantId);
   return reservations.filter((reservation) => reservation.requestedBy === userId);
 }
@@ -428,6 +490,9 @@ export async function listResidentReservations(
 export async function createTenantReservation(
   input: Omit<Reservation, "id" | "createdAt" | "status">,
 ) {
+  if (hasSupabaseConfiguration()) {
+    return supabaseStore.createTenantReservation(input);
+  }
   if (input.endsAt <= input.startsAt) {
     throw new Error("O horário final deve ser posterior ao horário inicial.");
   }
@@ -460,6 +525,13 @@ export async function updateTenantReservation(
   reservationId: string,
   status: "approved" | "rejected" | "cancelled",
 ) {
+  if (hasSupabaseConfiguration()) {
+    return supabaseStore.updateTenantReservation(
+      tenantId,
+      reservationId,
+      status,
+    );
+  }
   return updateRuntimeData((data) => {
     const reservation = data.reservations.find(
       (item) => item.tenantId === tenantId && item.id === reservationId,
@@ -473,6 +545,9 @@ export async function updateTenantReservation(
 }
 
 export async function listTenantAnnouncements(tenantId: string) {
+  if (hasSupabaseConfiguration()) {
+    return supabaseStore.listTenantAnnouncements(tenantId);
+  }
   const data = await readRuntimeData();
   return data.announcements
     .filter((announcement) => announcement.tenantId === tenantId)
@@ -488,6 +563,9 @@ export async function createTenantAnnouncement(
     poll: Announcement["poll"];
   },
 ) {
+  if (hasSupabaseConfiguration()) {
+    return supabaseStore.createTenantAnnouncement(input);
+  }
   const announcement = announcementSchema.parse({
     ...input,
     id: randomUUID(),
@@ -505,6 +583,14 @@ export async function voteOnTenantPoll(
   userId: string,
   optionIndex: number,
 ) {
+  if (hasSupabaseConfiguration()) {
+    return supabaseStore.voteOnTenantPoll(
+      tenantId,
+      announcementId,
+      userId,
+      optionIndex,
+    );
+  }
   return updateRuntimeData((data) => {
     const announcement = data.announcements.find(
       (item) => item.tenantId === tenantId && item.id === announcementId,
@@ -521,6 +607,7 @@ export async function voteOnTenantPoll(
 }
 
 export async function listTenantTickets(tenantId: string) {
+  if (hasSupabaseConfiguration()) return supabaseStore.listTenantTickets(tenantId);
   const data = await readRuntimeData();
   return data.tickets
     .filter((ticket) => ticket.tenantId === tenantId)
@@ -528,6 +615,9 @@ export async function listTenantTickets(tenantId: string) {
 }
 
 export async function listResidentTickets(tenantId: string, userId: string) {
+  if (hasSupabaseConfiguration()) {
+    return supabaseStore.listResidentTickets(tenantId, userId);
+  }
   const tickets = await listTenantTickets(tenantId);
   return tickets.filter((ticket) => ticket.openedBy === userId);
 }
@@ -535,6 +625,7 @@ export async function listResidentTickets(tenantId: string, userId: string) {
 export async function createTenantTicket(
   input: Omit<Ticket, "id" | "status" | "response" | "createdAt" | "updatedAt">,
 ) {
+  if (hasSupabaseConfiguration()) return supabaseStore.createTenantTicket(input);
   const now = new Date().toISOString();
   const ticket = ticketSchema.parse({
     ...input,
@@ -556,6 +647,14 @@ export async function respondToTenantTicket(
   response: string,
   status: "in_progress" | "resolved",
 ) {
+  if (hasSupabaseConfiguration()) {
+    return supabaseStore.respondToTenantTicket(
+      tenantId,
+      ticketId,
+      response,
+      status,
+    );
+  }
   return updateRuntimeData((data) => {
     const ticket = data.tickets.find(
       (item) => item.tenantId === tenantId && item.id === ticketId,

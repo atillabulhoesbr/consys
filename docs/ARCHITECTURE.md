@@ -117,14 +117,37 @@ no dashboard. Ao aprovar, confirma unidade; a tela nunca exibe hash de senha.
 
 ## Supabase e RLS
 
-O projeto contém clientes SSR Supabase e migration relacional multi-tenant. A
-migration habilita RLS sem policies permissivas. Isso é fail-closed: não use
-credenciais privilegiadas no navegador nem abra policies para fazer o fluxo
-JSON funcionar.
+Quando `NEXT_PUBLIC_SUPABASE_URL` e a chave Publishable/anon estão ambas
+configuradas, `src/lib/auth.ts` usa Supabase Auth SSR (`getUser`,
+`signInWithPassword`, `signOut`) e carrega perfil, papel global, memberships e
+unidades do banco. Sem configuração, o modo JSON local continua disponível;
+configuração parcial falha explicitamente, sem fallback.
 
-As políticas por papel/tenant, RPCs seguras, Auth SSR Supabase e testes contra
-dois tenants Supabase ainda não foram implementados. O tenant JSON e o tenant
-PostgreSQL são modos distintos, não uma sincronização ou fallback automático.
+`20261020010000_multitenant_access_and_operations.sql` acrescenta cobrança,
+reserva, chamado, solicitação de morador, categoria/prioridade/enquete e votos,
+além de RLS com papéis por tenant e vínculos por unidade. Reservas sobrepostas
+são barradas por constraint GiST no banco; voto único é garantido por chave
+única. O código público `slug@consys.com` apenas localiza tenant ativo; não é
+autorização. O perfil é provisionado por trigger após criar usuário Auth.
+
+As funções `provision_tenant` e `grant_initial_platform_admin` são restritas a
+`service_role`. A aprovação de morador é uma RPC transacional que verifica
+papel de síndico, cria/ativa unidade, membership e vínculo à unidade, e só
+então confirma a conta Auth. As funções sensíveis vivem no schema `private` ou
+têm execução revogada para `anon` e `authenticated`, salvo a aprovação que
+verifica o membership no corpo da função.
+
+`SUPABASE_SERVICE_ROLE_KEY` só pode ser usada server-side para provisionamento
+Auth; ela ignora RLS e nunca deve ser prefixada com `NEXT_PUBLIC_`. Leituras e
+gravações normais usam o cliente SSR Publishable e permanecem sob RLS. O
+adaptador em `src/lib/supabase/store.ts` mantém os mesmos formatos de domínio
+usados pelas telas, mas executa consultas no momento da requisição; não há
+sincronização em background.
+
+As migrations são versionadas, mas ainda precisam ser aplicadas ao projeto
+remoto e verificadas com duas contas/tenants reais antes de considerar o
+ambiente pronto para produção. Esse passo requer acesso autenticado ao projeto
+Supabase; nenhuma migração remota é executada automaticamente.
 
 ## Estrutura
 

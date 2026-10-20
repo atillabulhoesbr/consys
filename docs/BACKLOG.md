@@ -1,15 +1,15 @@
 # Backlog
 
-## Próxima etapa — Segurança e armazenamento real
+## Em andamento — Validação remota Supabase
 
-- Implementar Auth SSR Supabase e autorização por associação validada no banco.
-- Criar RPC/policies RLS fail-closed para papel de plataforma e memberships.
-- Criar bootstrap seguro do primeiro Super Admin no Supabase.
-- Migrar o fluxo de síndicos e moradores para Auth/RLS Supabase.
-- Avaliar código público independente do slug antes de abrir novos cadastros.
+- Aplicar e validar as migrations no projeto Supabase ConSys.
+- Configurar URL, chave Publishable e service role nas variáveis seguras do
+  ambiente local/Vercel; manter a service role somente server-side.
+- Criar o primeiro Super Admin pelo script de bootstrap de uso único.
+- Testar login, aprovação de moradores e operações RLS com dois tenants e
+  usuários distintos, inclusive tentativa de adulterar tenant/unidade.
 - Adicionar teste de rota e Server Action simulando adulteração de slug/IDs.
 - Implementar verificação server-side para cada operação sensível e IDOR.
-- Testar dois usuários e tenants distintos contra rotas e queries reais.
 - Adicionar proteção de força bruta distribuída antes de publicar login.
 - Planejar migração de JSON de desenvolvimento sem copiar segredos/sessões.
 
@@ -23,7 +23,8 @@
 - Dashboard com dados reais, condomínio, blocos, unidades e moradores.
 - Listas paginadas com busca, filtros e feedback de formulário.
 - Melhorar gestão de blocos/unidades com cadastro estruturado no painel.
-- Migrar cobranças, reservas, enquetes e chamados do JSON para tabelas com RLS.
+- Completar gestão estruturada de blocos/unidades no painel para poder lançar
+  cobranças de unidades ainda não vinculadas a moradores.
 - Integrar PIX/boleto com um provedor somente após definição e credenciais.
 
 ## Aplicativo móvel

@@ -143,6 +143,9 @@ export async function createTenantAction(
   const input = createTenantSchema.safeParse({
     name: formData.get("name"),
     slug: formData.get("slug"),
+    managerName: formData.get("managerName"),
+    managerEmail: formData.get("managerEmail"),
+    managerPassword: formData.get("managerPassword"),
   });
   if (!input.success) {
     return {
@@ -155,6 +158,7 @@ export async function createTenantAction(
     name: input.data.managerName,
     email: input.data.managerEmail,
     passwordHash: await hashPassword(input.data.managerPassword),
+    password: input.data.managerPassword,
   });
   if (!tenant) {
     return {

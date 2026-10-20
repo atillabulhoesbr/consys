@@ -139,6 +139,7 @@ export async function requestResidentRegistrationAction(
     name: input.data.name,
     email: input.data.email,
     passwordHash: await hashPassword(input.data.password),
+    password: input.data.password,
   });
   if (!accepted) {
     return {

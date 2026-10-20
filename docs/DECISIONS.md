@@ -74,11 +74,21 @@
   sozinho.
 - A conta Super Admin tem acesso global e é armazenada separadamente da
   associação de síndicos e moradores.
-- RLS permanece habilitado e sem policies permissivas até a implementação da
-  Etapa de segurança Supabase. Nenhuma migration remota foi executada.
-- Verificações puras de acesso cobrem membership, tenant suspenso e slug
-  inválido. Testes reais de integração entre tenants no backend escolhido
-  ainda são necessários.
+- Supabase Auth SSR fornece a identidade de sessão quando URL e chave
+  Publishable estão configuradas; os vínculos e papéis são lidos no PostgreSQL.
+- RLS habilita políticas de leitura/escrita para Super Admin, síndico e morador
+  ativo, restringindo dados do morador à unidade e ao tenant. O cliente normal
+  não usa service role.
+- O bootstrap do Super Admin e a criação de usuários/tenants usam
+  `SUPABASE_SERVICE_ROLE_KEY` somente no servidor. O bootstrap pode ocorrer
+  uma única vez; contas de moradores só recebem vínculo ativo após aprovação
+  do síndico e definição de unidade.
+- Cobranças, reservas, comunicados/enquetes e chamados passam a ser consultados
+  sob demanda no Supabase. Não há sincronização em background. JSON permanece
+  como backend local sem configuração Supabase e como exceção explícita do demo.
+- Constraints do banco bloqueiam reservas sobrepostas por tenant/espaço e
+  votos duplicados por usuário/enquete. Testes reais no projeto remoto, com
+  identidades e tenants separados, ainda são necessários antes de produção.
 
 ## Interface
 

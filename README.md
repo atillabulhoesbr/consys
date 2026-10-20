@@ -23,7 +23,7 @@ em `/`, o app do morador começa em `/app` e a administração geral fica em
 
    ```dotenv
    NEXT_PUBLIC_SUPABASE_URL=
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=
+   NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=
    INITIAL_ADMIN_EMAIL=admin@consys.com
    INITIAL_ADMIN_PASSWORD=defina-uma-senha-local
    INITIAL_ADMIN_NAME=Administrador ConSys
@@ -92,9 +92,9 @@ O modo JSON padrão é destinado somente ao desenvolvimento/teste local: não
 suporta concorrência entre processos, escala serverless, backup/replicação,
 bloqueio distribuído de tentativas ou persistência de produção. O sistema
 recusa esse modo em `NODE_ENV=production`, exceto pela demonstração temporária
-explicitamente habilitada abaixo. Se qualquer configuração Supabase for
-preenchida, JSON é desativado; o adaptador Supabase de autenticação e
-autorização ainda precisa ser implementado antes dessa configuração.
+explicitamente habilitada abaixo. Quando URL e chave pública Supabase estão configuradas, autenticação e dados
+passam pelo Supabase. Se somente uma das duas existir, o app falha
+explicitamente; não há fallback para JSON.
 
 ### Demonstração temporária na Vercel
 
@@ -119,8 +119,8 @@ Configure no ambiente Vercel, como variáveis privadas:
   Para a demonstração combinada solicitada: `morador@consys.com`,
   `12345678`, `Morador Demonstração` e `Bloco A · 101`.
 - `CONSYS_DEMO_JSON=true`.
-- `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` devem ficar
-  vazias/removidas até a migração para o modo Supabase.
+- Não configure `NEXT_PUBLIC_SUPABASE_URL` nem
+  `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` enquanto estiver usando a demo JSON.
 
 O Super Admin global não é provisionado nem pode entrar no modo demo; isso
 mantém a demonstração limitada ao condomínio de teste. As variáveis
@@ -144,10 +144,48 @@ Auth, autorização e RLS antes do deploy.
 
 ## Supabase
 
-Os clientes SSR e migrations relacionais estão preparados, mas as policies
-RLS específicas, Auth e bootstrap Supabase ainda não foram implementados. A
-migration habilita RLS sem policies permissivas. Não configure as variáveis
-Supabase esperando que o modo JSON seja usado como fallback.
+O modo Supabase usa Supabase Auth SSR para login e sessão, PostgreSQL para
+dados e RLS para o isolamento por tenant/unidade. A migration cria as tabelas
+de condomínios, blocos, unidades, moradores, associações, solicitações,
+cobranças, reservas, comunicados/enquetes, votos e chamados. RLS está habilitado
+e as policies não confiam no tenant ou papel enviados pelo navegador.
+
+Configure localmente em `.env.local` (nunca versione esse arquivo):
+
+```dotenv
+NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
+NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
+SUPABASE_SERVICE_ROLE_KEY=...
+INITIAL_ADMIN_EMAIL=admin@seudominio.com
+INITIAL_ADMIN_PASSWORD=use-uma-senha-forte-com-12-ou-mais-caracteres
+INITIAL_ADMIN_NAME=Administrador ConSys
+CONSYS_DEMO_JSON=false
+```
+
+A chave Publishable é própria para o cliente, mas não substitui RLS. A chave
+`SUPABASE_SERVICE_ROLE_KEY` ignora RLS: mantenha-a somente no ambiente
+server-side, nunca use prefixo `NEXT_PUBLIC_`, nunca a envie pelo chat e nunca
+a use no navegador. Ela é necessária para provisionar contas via Auth Admin
+durante a criação de síndicos e solicitações de moradores.
+
+Para iniciar um projeto remoto vazio:
+
+1. Aplique as migrations versionadas com Supabase CLI (`supabase db push`) ou
+   pelo SQL Editor, revisando a migration antes de executar. Não crie tabelas
+   manualmente em paralelo às migrations.
+2. Configure as variáveis acima em `.env.local`.
+3. Execute uma única vez `npm run db:bootstrap-admin` com um email válido e
+   senha forte. O script falha se já houver Super Admin configurado.
+4. Inicie `npm run dev`, entre em `/admin/login` e crie o condomínio e a conta
+   do primeiro síndico.
+5. Cadastre uma solicitação de morador em `/{slug}/cadastro`; após aprovação e
+   definição da unidade pelo síndico, o acesso ao app fica ativo.
+
+O bootstrap exige `SUPABASE_SERVICE_ROLE_KEY`, criada pelo próprio projeto.
+Não cole esse segredo em issues, commits ou mensagens. Na Vercel, cadastre URL
+e Publishable como variáveis públicas de configuração e a service role como
+variável server-only; depois faça um novo deploy. Deixe
+`CONSYS_DEMO_JSON=false` ou remova essa variável.
 
 Com Docker instalado:
 
@@ -157,8 +195,8 @@ npm run db:reset
 npm run db:stop
 ```
 
-Para o projeto remoto, configure o Supabase e aplique as migrations somente
-após revisar as policies da etapa de segurança.
+O projeto remoto requer credenciais do proprietário para aplicar migrations;
+nenhuma migration remota é aplicada automaticamente pelo app.
 
 ## Comandos úteis
 
@@ -172,12 +210,11 @@ npm run build
 
 ## Deploy
 
-A landing pode ser publicada na Vercel, mas o ambiente privado ainda não está
-pronto para produção. Não habilite o login em produção com armazenamento JSON.
-Antes de lançar, implemente e teste Auth Supabase, policies RLS, autorização
-server-side e mitigação de tentativas de login; então configure o host `app`,
-DNS e as variáveis Supabase. Não execute migrations destrutivas automaticamente
-no deploy.
+A Vercel pode atender o modo Supabase depois de aplicar as migrations,
+configurar variáveis e testar login de cada papel, isolamento entre dois tenants
+e operações RLS no projeto remoto. Não execute migrations destrutivas
+automaticamente no deploy. JSON permanece somente em desenvolvimento e no
+modo de demo explicitamente habilitado.
 
 ## Documentação
 
