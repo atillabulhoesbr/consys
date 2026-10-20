@@ -31,6 +31,12 @@ const demoManagerSchema = z.object({
   password: z.string().min(8).max(256),
   name: z.string().trim().min(1).max(120),
 });
+const demoResidentSchema = z.object({
+  email: z.string().email().max(254),
+  password: z.string().min(8).max(256),
+  name: z.string().trim().min(1).max(120),
+  unitCode: z.string().trim().min(1).max(32),
+});
 
 export type PublicAccount = Pick<
   Account,
@@ -123,7 +129,7 @@ export async function ensureBootstrapAdmin() {
   });
 }
 
-async function ensureDemoManager() {
+async function ensureDemoAccounts() {
   if (
     process.env.NODE_ENV !== "production" ||
     process.env.CONSYS_DEMO_JSON !== "true"
@@ -131,14 +137,31 @@ async function ensureDemoManager() {
     return;
   }
 
-  const parsed = demoManagerSchema.safeParse({
+  const managerInput = demoManagerSchema.safeParse({
     email: process.env.DEMO_MANAGER_EMAIL?.trim().toLowerCase(),
     password: process.env.DEMO_MANAGER_PASSWORD,
     name: process.env.DEMO_MANAGER_NAME?.trim() || "Síndico Demonstração",
   });
-  if (!parsed.success) {
+  if (!managerInput.success) {
     throw new Error(
       "Configure DEMO_MANAGER_EMAIL, DEMO_MANAGER_PASSWORD (mínimo 8 caracteres) e DEMO_MANAGER_NAME no ambiente da demonstração.",
+    );
+  }
+
+  const residentInput = demoResidentSchema.safeParse({
+    email: process.env.DEMO_RESIDENT_EMAIL?.trim().toLowerCase(),
+    password: process.env.DEMO_RESIDENT_PASSWORD,
+    name: process.env.DEMO_RESIDENT_NAME?.trim() || "Morador Demonstração",
+    unitCode: process.env.DEMO_RESIDENT_UNIT?.trim() || "Bloco A · 101",
+  });
+  if (!residentInput.success) {
+    throw new Error(
+      "Configure DEMO_RESIDENT_EMAIL, DEMO_RESIDENT_PASSWORD (mínimo 8 caracteres), DEMO_RESIDENT_NAME e DEMO_RESIDENT_UNIT no ambiente da demonstração.",
+    );
+  }
+  if (managerInput.data.email === residentInput.data.email) {
+    throw new Error(
+      "As contas de síndico e morador demo precisam usar emails diferentes.",
     );
   }
 
@@ -149,35 +172,63 @@ async function ensureDemoManager() {
     );
   }
 
-  const { email, password, name } = parsed.data;
-  await updateRuntimeData(async (data) => {
-    const existingManager = data.users.find((user) => user.email === email);
-    if (existingManager) {
-      if (
-        existingManager.active &&
-        existingManager.platformRole === null &&
-        existingManager.managerTenantIds.length === 1 &&
-        existingManager.managerTenantIds[0] === tenant.id
-      ) {
-        return;
-      }
-      throw new Error(
-        "O email configurado para o síndico demo já pertence a uma conta incompatível.",
-      );
-    }
-
-    const manager: Account = {
-      id: randomUUID(),
-      email,
-      name,
-      passwordHash: await hashPassword(password),
-      platformRole: null,
-      tenantIds: [tenant.id],
+  const demoAccounts = [
+    {
+      ...managerInput.data,
       managerTenantIds: [tenant.id],
       unitMemberships: [],
-      active: true,
-    };
-    data.users.push(manager);
+    },
+    {
+      ...residentInput.data,
+      managerTenantIds: [],
+      unitMemberships: [
+        { tenantId: tenant.id, unitCode: residentInput.data.unitCode },
+      ],
+    },
+  ];
+
+  await updateRuntimeData(async (data) => {
+    for (const demoAccount of demoAccounts) {
+      const existingAccount = data.users.find(
+        (user) => user.email === demoAccount.email,
+      );
+      if (existingAccount) {
+        const isManager = demoAccount.managerTenantIds.length > 0;
+        const hasExpectedAccess = isManager
+          ? existingAccount.managerTenantIds.length === 1 &&
+            existingAccount.managerTenantIds[0] === tenant.id &&
+            existingAccount.unitMemberships.length === 0
+          : existingAccount.managerTenantIds.length === 0 &&
+            existingAccount.unitMemberships.length === 1 &&
+            existingAccount.unitMemberships[0].tenantId === tenant.id &&
+            existingAccount.unitMemberships[0].unitCode ===
+              demoAccount.unitMemberships[0].unitCode;
+        if (
+          !existingAccount.active ||
+          existingAccount.platformRole !== null ||
+          !existingAccount.tenantIds.includes(tenant.id) ||
+          !hasExpectedAccess
+        ) {
+          throw new Error(
+            `A conta demo ${demoAccount.email} já existe com vínculo incompatível.`,
+          );
+        }
+        continue;
+      }
+
+      const account: Account = {
+        id: randomUUID(),
+        email: demoAccount.email,
+        name: demoAccount.name,
+        passwordHash: await hashPassword(demoAccount.password),
+        platformRole: null,
+        tenantIds: [tenant.id],
+        managerTenantIds: demoAccount.managerTenantIds,
+        unitMemberships: demoAccount.unitMemberships,
+        active: true,
+      };
+      data.users.push(account);
+    }
   });
 }
 
@@ -192,7 +243,7 @@ export async function authenticate(
   ) {
     await ensureBootstrapAdmin();
   }
-  await ensureDemoManager();
+  await ensureDemoAccounts();
   const data = await getRuntimeData();
   const account = data.users.find(
     (user) => user.email === email.trim().toLowerCase() && user.active,

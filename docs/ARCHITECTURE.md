@@ -53,11 +53,11 @@ Uma exceção explícita, `CONSYS_DEMO_JSON=true`, permite uma demonstração
 temporária em produção sem Supabase. Nessa modalidade, tenants são lidos do
 JSON versionado e o runtime gravável fica em `/tmp/consys-demo-json`; alterações
 podem desaparecer em reinícios/deploys e divergir entre instâncias. O login
-provisiona o síndico restrito ao tenant `condominio-demo` por
-`DEMO_MANAGER_EMAIL`, `DEMO_MANAGER_PASSWORD` e `DEMO_MANAGER_NAME`. As
-credenciais `INITIAL_ADMIN_*` não são usadas nesse modo e o Super Admin global
-não é provisionado. A interface avisa que alterações não têm persistência
-garantida.
+provisiona o síndico restrito ao tenant `condominio-demo` por `DEMO_MANAGER_*`
+e o morador com associação somente à unidade configurada por
+`DEMO_RESIDENT_*`. As contas precisam ter emails distintos. `INITIAL_ADMIN_*`
+não é usado nesse modo e o Super Admin global não é provisionado. A interface
+avisa que alterações não têm persistência garantida.
 
 Se qualquer configuração Supabase for parcialmente ou totalmente preenchida,
 o modo JSON é recusado; não há fallback silencioso. A exceção demo deve ser

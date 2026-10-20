@@ -42,8 +42,9 @@
 - Exceção temporária para demonstração Vercel: `CONSYS_DEMO_JSON=true` permite
   runtime JSON em `/tmp/consys-demo-json` somente em produção sem Supabase. O
   runtime é efêmero e específico por instância serverless; a interface avisa
-  sobre a ausência de persistência. `DEMO_MANAGER_*` provisiona um síndico
-  limitado ao tenant de demonstração e não cria acesso Super Admin.
+  sobre a ausência de persistência. `DEMO_MANAGER_*` provisiona um síndico e
+  `DEMO_RESIDENT_*` um morador vinculado somente à unidade de demonstração; as
+  identidades não podem compartilhar email. O modo não cria acesso Super Admin.
   `INITIAL_ADMIN_*` não são usados no demo. Esta exceção não representa suporte
   a JSON para produção real.
 - JSON não é adequado a múltiplos processos/serverless; esta limitação é

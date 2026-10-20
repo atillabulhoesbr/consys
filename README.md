@@ -109,8 +109,12 @@ Configure no ambiente Vercel, como variáveis privadas:
 
 - `DEMO_MANAGER_EMAIL`, `DEMO_MANAGER_PASSWORD` e `DEMO_MANAGER_NAME` para
   provisionar o síndico restrito ao condomínio `condominio-demo`. A senha deve
-  ter ao menos 8 caracteres. Essa é a conta a compartilhar para demonstrar o
-  painel do condomínio.
+  ter ao menos 8 caracteres.
+- `DEMO_RESIDENT_EMAIL`, `DEMO_RESIDENT_PASSWORD`, `DEMO_RESIDENT_NAME` e
+  `DEMO_RESIDENT_UNIT` para provisionar um morador de demonstração na unidade
+  indicada. Use email diferente do síndico e senha com ao menos 8 caracteres.
+  Para a demonstração combinada solicitada: `morador@consys.com`,
+  `12345678`, `Morador Demonstração` e `Bloco A · 101`.
 - `CONSYS_DEMO_JSON=true`.
 - `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` devem ficar
   vazias/removidas até a migração para o modo Supabase.
@@ -119,6 +123,12 @@ O Super Admin global não é provisionado nem pode entrar no modo demo; isso
 mantém a demonstração limitada ao condomínio de teste. As variáveis
 `INITIAL_ADMIN_*` ficam para o ambiente local e para o futuro ambiente
 administrativo de produção.
+
+O síndico entra em `/admin/login`. O morador localiza
+`condominio-demo@consys.com` em `/app` e entra em
+`/condominio-demo/login` com as credenciais `DEMO_RESIDENT_*`. A senha
+`12345678` é fraca e serve exclusivamente para o demo público; não a reutilize
+em outros ambientes ou contas.
 
 O modo de demonstração não é o ambiente de produção: a persistência JSON
 compartilhada exige armazenamento externo ou um servidor com disco persistente.
