@@ -138,7 +138,8 @@ export async function ensureBootstrapAdmin() {
 function isProductionJsonDemo() {
   return (
     process.env.NODE_ENV === "production" &&
-    process.env.CONSYS_DEMO_JSON === "true"
+    process.env.CONSYS_DEMO_JSON === "true" &&
+    !hasSupabaseConfiguration()
   );
 }
 

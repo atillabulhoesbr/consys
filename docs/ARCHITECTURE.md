@@ -105,7 +105,9 @@ no dashboard. Ao aprovar, confirma unidade; a tela nunca exibe hash de senha.
 `src/lib/supabase/config.ts` define a URL do Supabase e a chave pública
 Publishable. `src/lib/auth.ts` usa Supabase Auth SSR (`getUser`,
 `signInWithPassword`, `signOut`) e carrega perfil, papel global, memberships e
-unidades do banco. A aplicação não usa JSON como fallback.
+unidades do banco. A aplicação não usa JSON como fallback. A flag antiga
+`CONSYS_DEMO_JSON` não ativa demo nem aviso quando a conexão Supabase estiver
+configurada.
 
 `20261020010000_multitenant_access_and_operations.sql` acrescenta cobrança,
 reserva, chamado, solicitação de morador, categoria/prioridade/enquete e votos,

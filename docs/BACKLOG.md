@@ -7,8 +7,8 @@
 - Login Supabase verificado para Super Admin, síndico e morador; morador
   aprovado e vinculado à unidade `A-101`.
 - Publicar a conexão Supabase sem variáveis públicas e confirmar o login no
-  deployment `consys-hazel.vercel.app`; a service role continua necessária
-  apenas para provisionamento server-side.
+  deployment `consys-hazel.vercel.app`; o login de síndico foi testado e a
+  service role continua necessária apenas para provisionamento server-side.
 - Testar login, aprovação de moradores e operações RLS com dois tenants e
   usuários distintos, inclusive tentativa de adulterar tenant/unidade.
 - Adicionar teste de rota e Server Action simulando adulteração de slug/IDs.

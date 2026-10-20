@@ -152,7 +152,8 @@ type RuntimeData = z.infer<typeof runtimeSchema>;
 const seedDataDirectory = path.join(process.cwd(), "dados_json");
 const isProductionJsonDemo =
   process.env.NODE_ENV === "production" &&
-  process.env.CONSYS_DEMO_JSON === "true";
+  process.env.CONSYS_DEMO_JSON === "true" &&
+  !hasSupabaseConfiguration();
 const runtimeDirectory = isProductionJsonDemo
   ? path.join(tmpdir(), "consys-demo-json")
   : seedDataDirectory;

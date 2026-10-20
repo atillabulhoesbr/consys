@@ -16,6 +16,7 @@ import {
   ResidentTicketForm,
 } from "@/components/resident-forms";
 import { getCurrentAccount } from "@/lib/auth";
+import { hasSupabaseConfiguration } from "@/lib/supabase/server";
 import {
   listResidentReservations,
   listResidentTickets,
@@ -78,7 +79,8 @@ export default async function ResidentAppPage({
         </div>
       </header>
       {process.env.NODE_ENV === "production" &&
-      process.env.CONSYS_DEMO_JSON === "true" ? (
+      process.env.CONSYS_DEMO_JSON === "true" &&
+      !hasSupabaseConfiguration() ? (
         <p className="border-b border-[#ead9aa] bg-[#fff8e7] px-4 py-2 text-center text-xs leading-5 text-[#76591d]">
           Ambiente de demonstração: alterações em dados podem ser temporárias e
           não aparecer para outros usuários.

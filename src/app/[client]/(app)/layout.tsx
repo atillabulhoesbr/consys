@@ -7,6 +7,7 @@ import {
 } from "@/lib/tenant-access";
 import { TenantSidebar } from "@/components/tenant-sidebar";
 import { listResidentRegistrations } from "@/lib/storage/json-store";
+import { hasSupabaseConfiguration } from "@/lib/supabase/server";
 
 export default async function TenantLayout({
   children,
@@ -46,7 +47,8 @@ export default async function TenantLayout({
       />
       <div className="min-w-0 flex-1">
         {process.env.NODE_ENV === "production" &&
-        process.env.CONSYS_DEMO_JSON === "true" ? (
+        process.env.CONSYS_DEMO_JSON === "true" &&
+        !hasSupabaseConfiguration() ? (
           <p className="border-b border-[#ead9aa] bg-[#fff8e7] px-5 py-2 text-center text-xs leading-5 text-[#76591d]">
             Ambiente de demonstração: alterações em dados podem ser temporárias
             e não aparecer para outros usuários.
