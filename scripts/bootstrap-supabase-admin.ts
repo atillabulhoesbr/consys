@@ -1,23 +1,23 @@
 import { loadEnvConfig } from "@next/env";
 import { createClient } from "@supabase/supabase-js";
+import { SUPABASE_URL } from "../src/lib/supabase/config";
 
 loadEnvConfig(process.cwd());
 
 async function main() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
   const key = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim();
   const email = process.env.INITIAL_ADMIN_EMAIL?.trim().toLowerCase();
   const password = process.env.INITIAL_ADMIN_PASSWORD;
   const name =
     process.env.INITIAL_ADMIN_NAME?.trim() || "Administrador ConSys";
 
-  if (!url || !key || !email || !password || password.length < 12) {
+  if (!key || !email || !password || password.length < 12) {
     throw new Error(
-      "Configure URL, SUPABASE_SERVICE_ROLE_KEY, INITIAL_ADMIN_EMAIL e uma INITIAL_ADMIN_PASSWORD com ao menos 12 caracteres em .env.local.",
+      "Configure SUPABASE_SERVICE_ROLE_KEY, INITIAL_ADMIN_EMAIL e uma INITIAL_ADMIN_PASSWORD com ao menos 12 caracteres em .env.local.",
     );
   }
 
-  const supabase = createClient(url, key, {
+  const supabase = createClient(SUPABASE_URL, key, {
     auth: {
       autoRefreshToken: false,
       detectSessionInUrl: false,

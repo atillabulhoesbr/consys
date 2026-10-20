@@ -162,21 +162,6 @@ const runtimePath = path.join(runtimeDirectory, "runtime.json");
 let writeQueue = Promise.resolve();
 
 function assertJsonStorageEnabled() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
-
-  if (Boolean(url) !== Boolean(anonKey)) {
-    throw new Error(
-      "A configuração Supabase está incompleta. Defina URL e chave pública juntas.",
-    );
-  }
-
-  if (url && anonKey) {
-    throw new Error(
-      "Supabase está configurado, mas a autenticação e autorização Supabase ainda não estão implementadas. O armazenamento JSON foi desativado para evitar fallback inseguro.",
-    );
-  }
-
   if (process.env.NODE_ENV === "production" && !isProductionJsonDemo) {
     throw new Error(
       "O armazenamento JSON local não pode ser usado em produção. Configure o Supabase após implementar seu adaptador de autenticação.",

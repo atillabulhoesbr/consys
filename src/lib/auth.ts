@@ -381,6 +381,7 @@ export async function getCurrentAccount(): Promise<AuthenticatedAccount | null> 
       error: userError,
     } = await supabase.auth.getUser();
     if (userError) {
+      if (userError.name === "AuthSessionMissingError") return null;
       throw new Error(`Falha ao validar sessão Supabase: ${userError.message}`);
     }
     if (!user) return null;

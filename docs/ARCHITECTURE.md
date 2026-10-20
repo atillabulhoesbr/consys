@@ -14,35 +14,29 @@ usuário com o UUID do tenant. Tenant inexistente/suspenso ou usuário sem acess
 recebem 404. Cada nova operação sensível deve repetir a autorização no servidor;
 não deve confiar em `tenant_id`, role ou identidade vindos do navegador.
 
-## Armazenamento provisório
+## Supabase como armazenamento
 
-Sem credenciais Supabase, a aplicação em desenvolvimento/teste lê os tenants
-de `dados_json/tenants.json` e mantém contas e sessões em
-`dados_json/runtime.json`. O módulo server-only `src/lib/storage/json-store.ts`
-valida os arquivos com Zod, serializa gravações dentro do processo e grava o
-runtime por arquivo temporário + rename. `runtime.json` é ignorado pelo Git,
-tem permissões restritas e armazena somente hashes de senha e de sessão.
+URL do projeto e chave Publishable ficam em
+`src/lib/supabase/config.ts`, sem depender de variáveis públicas na Vercel. A
+Publishable key é pública e não concede acesso por si só: autenticação e RLS
+no banco continuam obrigatórias. O login valida email e senha no Supabase Auth;
+senhas nunca são consultadas nem devolvidas pelo banco.
 
-No modo JSON local, o primeiro Super Admin é criado no primeiro login a partir
-de `INITIAL_ADMIN_EMAIL`, `INITIAL_ADMIN_PASSWORD` e `INITIAL_ADMIN_NAME`; a
-senha é derivada com scrypt e nunca escrita em texto puro. No modo Supabase, o
-primeiro Super Admin é provisionado uma única vez com `npm run
+O primeiro Super Admin é provisionado uma única vez com `npm run
 db:bootstrap-admin`, usando a chave service role apenas no servidor. O script
 cria uma conta Auth confirmada e concede o papel global pela função
 `grant_initial_platform_admin`. O bootstrap Supabase foi executado no projeto
-ConSys em 20/10/2026. Alterar as variáveis depois não troca a senha de uma
-conta existente.
+ConSys em 20/10/2026.
 
 O painel administrativo está em `/admin` e o login em `/admin/login`. A página
 do painel e a Server Action de criação de clientes verificam no servidor se a
 conta autenticada tem papel `super_admin`. Criar tenant também cria o primeiro
-síndico, com credencial scrypt e membership de gestão restrito ao tenant.
+síndico pelo Supabase Auth e cria membership de gestão restrito ao tenant.
 O Super Admin é uma identidade global em `platform_roles`, sem membership,
 residente ou vínculo a condomínio; síndicos e moradores usam identidades Auth
-próprias, com perfil e vínculos associados ao ID do tenant. Em produção, sem
-Supabase configurado e sem o modo demo explicitamente habilitado, o acesso
-falha de forma fechada e a tela de login informa quais variáveis públicas
-precisam ser configuradas, sem tentar usar JSON.
+próprias, com perfil e vínculos associados ao ID do tenant. Em caso de erro de
+conexão ou autenticação Supabase, o acesso falha de forma fechada; não há
+fallback para JSON.
 Tenants armazenam UUID interno, slug e código de entrada público no formato
 `{slug}@consys.com`.
 
@@ -56,43 +50,20 @@ Dados de validação remota no Supabase: tenant `residencial-modelo`, síndico
 vinculado à unidade `A-101`. As senhas temporárias são compartilhadas fora da
 documentação e não devem ser usadas em produção.
 
-Credenciais locais de teste ficam em `.env.local`, ignorado pelo Git. Não
-documente nem copie senhas para arquivos versionados ou ambientes compartilhados.
-
-O modo JSON padrão serve para desenvolvimento local: não tem transações entre
-processos, persistência confiável em serverless, backup, replicação, proteção
-contra acesso ao filesystem do host ou limitação de tentativas distribuída. Por
-isso a aplicação recusa esse modo em `production`.
-
-Uma exceção explícita, `CONSYS_DEMO_JSON=true`, permite uma demonstração
-temporária em produção sem Supabase. Nessa modalidade, tenants são lidos do
-JSON versionado e o runtime gravável fica em `/tmp/consys-demo-json`; alterações
-podem desaparecer em reinícios/deploys e divergir entre instâncias. O login
-provisiona o síndico restrito ao tenant `condominio-demo` por `DEMO_MANAGER_*`
-e o morador com associação somente à unidade configurada por
-`DEMO_RESIDENT_*`. As contas precisam ter emails distintos. `INITIAL_ADMIN_*`
-não é usado nesse modo e o Super Admin global não é provisionado. A interface
-avisa que alterações não têm persistência garantida.
-
-As sessões do modo demo usam cookie assinado HMAC-SHA256 com
-`DEMO_SESSION_SECRET` (mínimo 32 bytes aleatórios), para que a autenticação não
-dependa de runtime JSON compartilhado entre funções Vercel. A identidade e o
-tenant são reconstruídos apenas a partir dos emails configurados e do tenant
-demo; o cookie é HTTP-only, Secure, SameSite Strict e expira em oito horas.
-
-Se qualquer configuração Supabase for parcialmente ou totalmente preenchida,
-o modo JSON é recusado; não há fallback silencioso. A exceção demo deve ser
-desligada e substituída por Auth/autorização/RLS Supabase antes da produção real.
+`SUPABASE_SERVICE_ROLE_KEY` continua necessária somente para operações
+administrativas que criam contas Auth; ela é secreta, server-only e nunca pode
+ser embutida no código ou enviada ao navegador. Credenciais locais ficam em
+`.env.local`, ignorado pelo Git. Não documente senhas em arquivos versionados.
 
 ## Isolamento por tenant
 
-- `dados_json/tenants.json` associa slug a um UUID e estado ativo/suspenso.
+- O Supabase associa slug a UUID e estado ativo/suspenso do tenant.
 - Código de entrada identifica tenant, mas não autoriza leitura nem login.
 - O slug passa por validação de formato e comparação exata no servidor.
 - Slugs reservados por rotas do sistema (`admin`, `api`, `app` e `_next`) não podem
   ser usados como tenants.
-- Sessões são identificadas por token aleatório HTTP-only, SameSite Strict,
-  `Secure` em produção e prazo de oito horas. Só o SHA-256 do token é persistido.
+- Sessões são geridas pelo Supabase Auth em cookies HTTP-only, SameSite Strict,
+  `Secure` em produção.
 - Síndicos recebem membership de gestão no momento da criação pelo Admin Geral.
   `canManageTenant` só autoriza esse papel no UUID do tenant correspondente.
 - Solicitações de morador não recebem acesso. Após o síndico confirmar a unidade,
@@ -103,15 +74,14 @@ desligada e substituída por Auth/autorização/RLS Supabase antes da produção
   negócio também devem executar a autorização, mesmo quando o layout já o fez.
 - Nenhuma página protegida usa o slug diretamente para ler dados arbitrários.
 
-O JSON local é protótipo e não suporta operação concorrente/serverless. A
-autorização das rotas e ações é revalidada no servidor; a migração para Auth e
-RLS Supabase permanece requisito antes da publicação.
+Autorização das rotas e ações é revalidada no servidor; as políticas RLS também
+restringem as consultas diretamente no banco.
 
 ## Portal interno e módulos
 
 O painel de gestão do condomínio utiliza sidebar recolhível no desktop e menu
 lateral no mobile. As páginas `/{client}/taxas`, `/reservas`, `/mural`,
-`/chamados` e `/moradores` consultam e persistem dados JSON associados ao UUID
+`/chamados` e `/moradores` consultam e persistem dados no Supabase, associados ao UUID
 resolvido do tenant. Mutações administrativas exigem Super Admin ou síndico
 vinculado àquele tenant.
 
@@ -132,11 +102,10 @@ no dashboard. Ao aprovar, confirma unidade; a tela nunca exibe hash de senha.
 
 ## Supabase e RLS
 
-Quando `NEXT_PUBLIC_SUPABASE_URL` e a chave Publishable/anon estão ambas
-configuradas, `src/lib/auth.ts` usa Supabase Auth SSR (`getUser`,
+`src/lib/supabase/config.ts` define a URL do Supabase e a chave pública
+Publishable. `src/lib/auth.ts` usa Supabase Auth SSR (`getUser`,
 `signInWithPassword`, `signOut`) e carrega perfil, papel global, memberships e
-unidades do banco. Sem configuração, o modo JSON local continua disponível;
-configuração parcial falha explicitamente, sem fallback.
+unidades do banco. A aplicação não usa JSON como fallback.
 
 `20261020010000_multitenant_access_and_operations.sql` acrescenta cobrança,
 reserva, chamado, solicitação de morador, categoria/prioridade/enquete e votos,
@@ -159,10 +128,9 @@ adaptador em `src/lib/supabase/store.ts` mantém os mesmos formatos de domínio
 usados pelas telas, mas executa consultas no momento da requisição; não há
 sincronização em background.
 
-As migrations são versionadas, mas ainda precisam ser aplicadas ao projeto
-remoto e verificadas com duas contas/tenants reais antes de considerar o
-ambiente pronto para produção. Esse passo requer acesso autenticado ao projeto
-Supabase; nenhuma migração remota é executada automaticamente.
+As migrations são versionadas e foram aplicadas ao projeto remoto; a validação
+de isolamento com dois tenants continua pendente. Nenhuma migração remota é
+executada automaticamente.
 
 ## Estrutura
 
@@ -185,8 +153,8 @@ Supabase; nenhuma migração remota é executada automaticamente.
 - `src/app/globals.css`: tokens visuais compartilhados em verde natural e
   superfícies claras.
 - `src/components/ui`: componentes shadcn/ui.
-- `src/lib/auth.ts`: bootstrap local, senha e sessão.
-- `src/lib/storage/json-store.ts`: acesso server-only ao JSON.
+- `src/lib/auth.ts`: sessão e permissões derivadas do Supabase Auth.
+- `src/lib/storage/json-store.ts`: camada de acesso aos dados do Supabase.
 - `src/lib/tenant-access.ts`: regra pura de permissão de tenant.
 - `src/components/create-tenant-form.tsx`: cadastro de tenants com autorização
   repetida na Server Action.
@@ -195,7 +163,7 @@ Supabase; nenhuma migração remota é executada automaticamente.
 - `src/lib/resident-actions.ts`: identificação do tenant, solicitações e
   mutações do app do morador.
 - `supabase/migrations`: esquema PostgreSQL versionado.
-- `dados_json`: tenants de desenvolvimento e runtime local ignorado.
+- `src/lib/supabase/config.ts`: URL e chave pública Publishable do projeto.
 - `docs`: arquitetura, decisões e backlog.
 
 ## Identidade visual
