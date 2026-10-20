@@ -98,6 +98,9 @@
   comunicados, taxas, reservas e chamados.
 - Os mockups de celular na LP são ilustrações de interface do produto; badges
   das lojas são visuais e não clicáveis enquanto não existirem links oficiais.
+- Os mockups preservam o mesmo layout interno em todas as larguras. O conjunto
+  reduz sua escala proporcionalmente ao espaço disponível; as laterais não
+  encolhem por flexbox e os elementos internos não mudam por breakpoint.
 - No mockup promocional, o telefone da esquerda usa uma câmera frontal em ponto
   circular no lugar do traço de alto-falante, diferenciando-o visualmente do
   iPhone à direita.
