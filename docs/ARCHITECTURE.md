@@ -59,6 +59,12 @@ e o morador com associação somente à unidade configurada por
 não é usado nesse modo e o Super Admin global não é provisionado. A interface
 avisa que alterações não têm persistência garantida.
 
+As sessões do modo demo usam cookie assinado HMAC-SHA256 com
+`DEMO_SESSION_SECRET` (mínimo 32 bytes aleatórios), para que a autenticação não
+dependa de runtime JSON compartilhado entre funções Vercel. A identidade e o
+tenant são reconstruídos apenas a partir dos emails configurados e do tenant
+demo; o cookie é HTTP-only, Secure, SameSite Strict e expira em oito horas.
+
 Se qualquer configuração Supabase for parcialmente ou totalmente preenchida,
 o modo JSON é recusado; não há fallback silencioso. A exceção demo deve ser
 desligada e substituída por Auth/autorização/RLS Supabase antes da produção real.

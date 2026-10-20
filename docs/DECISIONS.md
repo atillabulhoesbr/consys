@@ -46,7 +46,9 @@
   `DEMO_RESIDENT_*` um morador vinculado somente à unidade de demonstração; as
   identidades não podem compartilhar email. O modo não cria acesso Super Admin.
   `INITIAL_ADMIN_*` não são usados no demo. Esta exceção não representa suporte
-  a JSON para produção real.
+  a JSON para produção real. Sessões demo são cookies HMAC-SHA256 assinados com
+  `DEMO_SESSION_SECRET`, permitindo autenticação em funções serverless distintas;
+  os registros de negócio JSON continuam efêmeros e não compartilhados.
 - JSON não é adequado a múltiplos processos/serverless; esta limitação é
   intencional e deve ser removida ao implementar Supabase.
 - Organizações criadas pelo painel são guardadas no runtime JSON local e não

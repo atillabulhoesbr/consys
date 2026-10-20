@@ -1,6 +1,7 @@
 import "server-only";
 
 import {
+  createHmac,
   createHash,
   randomBytes,
   randomUUID,
@@ -36,6 +37,10 @@ const demoResidentSchema = z.object({
   password: z.string().min(8).max(256),
   name: z.string().trim().min(1).max(120),
   unitCode: z.string().trim().min(1).max(32),
+});
+const demoSessionSchema = z.object({
+  email: z.string().email().max(254),
+  expiresAt: z.number().int().positive(),
 });
 
 export type PublicAccount = Pick<
@@ -129,13 +134,41 @@ export async function ensureBootstrapAdmin() {
   });
 }
 
-async function ensureDemoAccounts() {
-  if (
-    process.env.NODE_ENV !== "production" ||
-    process.env.CONSYS_DEMO_JSON !== "true"
-  ) {
-    return;
+function isProductionJsonDemo() {
+  return (
+    process.env.NODE_ENV === "production" &&
+    process.env.CONSYS_DEMO_JSON === "true"
+  );
+}
+
+function getDemoSessionSecret() {
+  const secret = process.env.DEMO_SESSION_SECRET;
+  if (!secret || Buffer.byteLength(secret, "utf8") < 32) {
+    throw new Error(
+      "Configure DEMO_SESSION_SECRET com pelo menos 32 bytes aleatórios no ambiente da demonstração.",
+    );
   }
+  return secret;
+}
+
+function stableDemoAccountId(tenantId: string, email: string) {
+  const hex = createHash("sha256")
+    .update(`consys-demo-account:${tenantId}:${email}`)
+    .digest("hex")
+    .slice(0, 32);
+  const variant = ((Number.parseInt(hex[16], 16) & 0x3) | 0x8).toString(16);
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-5${hex.slice(13, 16)}-${variant}${hex.slice(17, 20)}-${hex.slice(20)}`;
+}
+
+async function getProductionDemoAccounts(): Promise<
+  Array<{ account: Account; password: string }>
+> {
+  if (
+    !isProductionJsonDemo()
+  ) {
+    return [];
+  }
+  getDemoSessionSecret();
 
   const managerInput = demoManagerSchema.safeParse({
     email: process.env.DEMO_MANAGER_EMAIL?.trim().toLowerCase(),
@@ -186,50 +219,32 @@ async function ensureDemoAccounts() {
       ],
     },
   ];
+  return demoAccounts.map((demoAccount) => ({
+    account: {
+      id: stableDemoAccountId(tenant.id, demoAccount.email),
+      email: demoAccount.email,
+      name: demoAccount.name,
+      passwordHash: "demo-account-authenticated-from-environment",
+      platformRole: null,
+      tenantIds: [tenant.id],
+      managerTenantIds: demoAccount.managerTenantIds,
+      unitMemberships: demoAccount.unitMemberships,
+      active: true,
+    },
+    password: demoAccount.password,
+  }));
+}
 
-  await updateRuntimeData(async (data) => {
-    for (const demoAccount of demoAccounts) {
-      const existingAccount = data.users.find(
-        (user) => user.email === demoAccount.email,
-      );
-      if (existingAccount) {
-        const isManager = demoAccount.managerTenantIds.length > 0;
-        const hasExpectedAccess = isManager
-          ? existingAccount.managerTenantIds.length === 1 &&
-            existingAccount.managerTenantIds[0] === tenant.id &&
-            existingAccount.unitMemberships.length === 0
-          : existingAccount.managerTenantIds.length === 0 &&
-            existingAccount.unitMemberships.length === 1 &&
-            existingAccount.unitMemberships[0].tenantId === tenant.id &&
-            existingAccount.unitMemberships[0].unitCode ===
-              demoAccount.unitMemberships[0].unitCode;
-        if (
-          !existingAccount.active ||
-          existingAccount.platformRole !== null ||
-          !existingAccount.tenantIds.includes(tenant.id) ||
-          !hasExpectedAccess
-        ) {
-          throw new Error(
-            `A conta demo ${demoAccount.email} já existe com vínculo incompatível.`,
-          );
-        }
-        continue;
-      }
+function signDemoSession(payload: string) {
+  return createHmac("sha256", getDemoSessionSecret())
+    .update(payload)
+    .digest("base64url");
+}
 
-      const account: Account = {
-        id: randomUUID(),
-        email: demoAccount.email,
-        name: demoAccount.name,
-        passwordHash: await hashPassword(demoAccount.password),
-        platformRole: null,
-        tenantIds: [tenant.id],
-        managerTenantIds: demoAccount.managerTenantIds,
-        unitMemberships: demoAccount.unitMemberships,
-        active: true,
-      };
-      data.users.push(account);
-    }
-  });
+function isValidDemoPassword(candidate: string, expected: string) {
+  const candidateDigest = createHash("sha256").update(candidate).digest();
+  const expectedDigest = createHash("sha256").update(expected).digest();
+  return timingSafeEqual(candidateDigest, expectedDigest);
 }
 
 export async function authenticate(
@@ -237,13 +252,47 @@ export async function authenticate(
   password: string,
   requiredRole?: "super_admin" | "resident" | "manager",
 ) {
-  if (
-    process.env.NODE_ENV !== "production" ||
-    process.env.CONSYS_DEMO_JSON !== "true"
-  ) {
-    await ensureBootstrapAdmin();
+  if (isProductionJsonDemo()) {
+    const demoAccounts = await getProductionDemoAccounts();
+    const demoAccount = demoAccounts.find(
+      ({ account }) =>
+        account.email === email.trim().toLowerCase() && account.active,
+    );
+    const passwordMatches =
+      demoAccount !== undefined &&
+      isValidDemoPassword(password, demoAccount.password);
+    if (
+      !demoAccount ||
+      !passwordMatches ||
+      requiredRole === "super_admin" ||
+      (requiredRole === "resident" &&
+        demoAccount.account.unitMemberships.length === 0) ||
+      (requiredRole === "manager" &&
+        demoAccount.account.managerTenantIds.length === 0)
+    ) {
+      return null;
+    }
+
+    const expiresAt = Date.now() + SESSION_DURATION_SECONDS * 1000;
+    const payload = Buffer.from(
+      JSON.stringify({ email: demoAccount.account.email, expiresAt }),
+    ).toString("base64url");
+    const cookieStore = await cookies();
+    cookieStore.set(
+      SESSION_COOKIE,
+      `${payload}.${signDemoSession(payload)}`,
+      {
+        httpOnly: true,
+        secure: true,
+        sameSite: "strict",
+        path: "/",
+        maxAge: SESSION_DURATION_SECONDS,
+      },
+    );
+    return toPublicAccount(demoAccount.account);
   }
-  await ensureDemoAccounts();
+
+  await ensureBootstrapAdmin();
   const data = await getRuntimeData();
   const account = data.users.find(
     (user) => user.email === email.trim().toLowerCase() && user.active,
@@ -293,6 +342,39 @@ export async function authenticate(
 export async function getCurrentAccount(): Promise<AuthenticatedAccount | null> {
   const cookieStore = await cookies();
   const rawToken = cookieStore.get(SESSION_COOKIE)?.value;
+  if (isProductionJsonDemo()) {
+    if (!rawToken) return null;
+    const [payload, signature, extra] = rawToken.split(".");
+    if (!payload || !signature || extra !== undefined) return null;
+
+    const expectedSignature = Buffer.from(signDemoSession(payload));
+    const actualSignature = Buffer.from(signature);
+    if (
+      expectedSignature.length !== actualSignature.length ||
+      !timingSafeEqual(expectedSignature, actualSignature)
+    ) {
+      return null;
+    }
+
+    let parsedPayload: z.infer<typeof demoSessionSchema>;
+    try {
+      parsedPayload = demoSessionSchema.parse(
+        JSON.parse(Buffer.from(payload, "base64url").toString("utf8")),
+      );
+    } catch {
+      return null;
+    }
+    if (parsedPayload.expiresAt <= Date.now()) return null;
+
+    const demoAccounts = await getProductionDemoAccounts();
+    const demoAccount = demoAccounts.find(
+      ({ account }) => account.email === parsedPayload.email,
+    );
+    return demoAccount
+      ? toAuthenticatedAccount(demoAccount.account)
+      : null;
+  }
+
   if (!rawToken || !/^[A-Za-z0-9_-]{43}$/.test(rawToken)) {
     return null;
   }
@@ -317,7 +399,11 @@ export async function getCurrentAccount(): Promise<AuthenticatedAccount | null> 
 export async function destroyCurrentSession() {
   const cookieStore = await cookies();
   const rawToken = cookieStore.get(SESSION_COOKIE)?.value;
-  if (rawToken && /^[A-Za-z0-9_-]{43}$/.test(rawToken)) {
+  if (
+    !isProductionJsonDemo() &&
+    rawToken &&
+    /^[A-Za-z0-9_-]{43}$/.test(rawToken)
+  ) {
     const tokenHash = createHash("sha256").update(rawToken).digest("hex");
     await updateRuntimeData((data) => {
       data.sessions = data.sessions.filter(

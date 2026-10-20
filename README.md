@@ -110,6 +110,9 @@ Configure no ambiente Vercel, como variáveis privadas:
 - `DEMO_MANAGER_EMAIL`, `DEMO_MANAGER_PASSWORD` e `DEMO_MANAGER_NAME` para
   provisionar o síndico restrito ao condomínio `condominio-demo`. A senha deve
   ter ao menos 8 caracteres.
+- `DEMO_SESSION_SECRET` com pelo menos 32 bytes gerados aleatoriamente. Essa
+  chave assina o cookie de sessão demo para que os acessos funcionem em funções
+  serverless diferentes; mantenha-a secreta e igual em Production/Preview.
 - `DEMO_RESIDENT_EMAIL`, `DEMO_RESIDENT_PASSWORD`, `DEMO_RESIDENT_NAME` e
   `DEMO_RESIDENT_UNIT` para provisionar um morador de demonstração na unidade
   indicada. Use email diferente do síndico e senha com ao menos 8 caracteres.
@@ -123,6 +126,10 @@ O Super Admin global não é provisionado nem pode entrar no modo demo; isso
 mantém a demonstração limitada ao condomínio de teste. As variáveis
 `INITIAL_ADMIN_*` ficam para o ambiente local e para o futuro ambiente
 administrativo de produção.
+
+Após adicionar ou alterar `DEMO_SESSION_SECRET`, faça redeploy. Sem essa chave,
+o login demo falha de forma explícita; não use senha de usuário como chave de
+assinatura.
 
 O síndico entra em `/admin/login`. O morador localiza
 `condominio-demo@consys.com` em `/app` e entra em
